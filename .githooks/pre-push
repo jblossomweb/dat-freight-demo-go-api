@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+make vet
+make staticcheck
+make test
+make docs-check
+make build

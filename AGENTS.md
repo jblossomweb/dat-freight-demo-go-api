@@ -64,6 +64,14 @@ types so swag can generate accurate schemas, committed the generated spec under
 `internal/api/docs/`, and served Swagger UI at `GET /swagger/index.html` via
 `github.com/swaggo/http-swagger/v2`. No behavior change to existing endpoints.
 
+**Phase 10 (done):** Added a Makefile for common development workflows,
+including dependency setup, Swagger generation/freshness checks, Staticcheck,
+tests, vet, builds, seeding, and Docker commands. Added native Git hooks under
+`.githooks/` and a reusable `workflow_call` validation workflow under
+`.github/workflows/validate.yml`; validation runs type checks, vet, Staticcheck,
+tests, and generated-doc checks as separate jobs. README documents the setup
+and Node.js-to-Go workflow parallels.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

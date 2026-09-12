@@ -1,8 +1,10 @@
-# dat-freight-demo-api
+# Freight Load Board API
 
-Go + MongoDB REST API backing the DAT freight demo SPA. Implements the AG Grid
+Go + MongoDB REST API backing the DAT Freight Load Board demo SPA. Implements the AG Grid
 server-side row model contract (pagination, sort, filter, quicksearch) for
 freight loads, plus a single-load lookup endpoint.
+
+# Quick Start
 
 ## Requirements
 
@@ -13,19 +15,101 @@ freight loads, plus a single-load lookup endpoint.
 
 ```bash
 cp .env.example .env
-docker compose up --build
+make setup
+make docker-up
 ```
 
-> Whenever you change Go code, re-run `docker compose up --build` — the binary
-> is compiled into the image, so `docker compose up` alone won't pick up edits.
-
-Verify:
+## Verify
 
 ```bash
 curl -i http://localhost:8080/health
 ```
 
 Expect `200 OK` with `{"status":"ok","mongo":"ok"}` once both containers are healthy.
+
+# Developer Workflow
+
+> Whenever you change Go code, re-run `make docker-up` — the binary is compiled
+> into the image, and this target rebuilds the image automatically.
+
+## Development commands
+
+The `Makefile` provides shortcuts for common local workflows. Run `make help`
+to see all available targets.
+
+```bash
+make help        # list all available targets
+make setup       # download dependencies, tools, and enable Git hooks
+make deps        # download Go module dependencies
+make tools       # install development tools
+make tidy        # add missing and remove unused dependencies
+make build       # build all Go packages
+make test        # run Go tests
+make vet         # run go vet
+make staticcheck # run Staticcheck
+make docs        # regenerate Swagger documentation
+make docs-check  # verify generated Swagger documentation is current
+make setup-hooks # enable the repository's Git hooks
+make run         # run the API locally
+make seed        # seed MongoDB from the local host
+make docker-up   # build and start the Docker Compose stack
+make docker-down # stop and remove the Docker Compose stack
+make docker-logs # follow API container logs
+```
+
+## Coming from Node.js?
+
+Go spreads responsibilities across a few focused files instead of centralizing
+them in `package.json`.
+
+| Node.js concept                    | Go equivalent in this project   |
+| ---------------------------------- | ------------------------------- |
+| `package.json` dependencies        | `go.mod`                        |
+| `package-lock.json` or `yarn.lock` | `go.sum`                        |
+| `npm run` scripts                  | `Makefile` targets              |
+| `npm install`                      | `make deps` (`go mod download`) |
+| `node_modules`                     | Go's module cache               |
+| `main` or `bin` entry point        | Executables under `cmd/`        |
+| `npm test`                         | `make test`                     |
+| Custom documentation script        | `make docs`                     |
+| `docker compose up` script         | `make docker-up`                |
+
+The `Makefile` is a task runner, not a replacement for Go's toolchain. It
+provides stable, memorable project commands while `go.mod`, `go.sum`, the
+`go` command, and Docker continue to handle their respective concerns.
+
+Use `make deps` when refreshing downloaded modules. Use `make tidy` when
+changing imports or dependencies; it updates `go.mod` and `go.sum` to match
+the packages used by the source code. `make setup` also installs the pinned
+Staticcheck version used by the local hooks and CI.
+
+Run `make setup` once after cloning to download dependencies, install tools,
+and enable the repository's Git hooks. The pre-commit hook runs the local
+validation commands, including Staticcheck and the generated documentation
+check. The pre-push hook runs `make build` as a final compilation check.
+GitHub Actions runs the type checks, linter, Staticcheck, tests, and generated
+documentation check as separate jobs for pushes and pull requests, so CI
+remains the source of truth when local hooks are not enabled.
+
+## API documentation
+
+Interactive Swagger UI (generated from Go code annotations via
+[swaggo/swag](https://github.com/swaggo/swag)):
+
+```
+http://localhost:8080/swagger/index.html
+```
+
+The raw OpenAPI spec is served at `http://localhost:8080/swagger/doc.json`.
+
+The spec is generated into `internal/api/docs/` and committed to the repo (it
+is imported by `cmd/api/main.go` to register itself with the Swagger UI
+handler). Regenerate it after changing any handler annotations or
+request/response types:
+
+```bash
+make docs
+```
 
 > **The `mongo` container in `compose.yml` is for local development only.** It
 > runs with no authentication configured, so it must never be exposed to a
@@ -38,6 +122,8 @@ Expect `200 OK` with `{"status":"ok","mongo":"ok"}` once both containers are hea
 ```
 cmd/api/main.go        - HTTP server entrypoint (composition root)
 cmd/seed/main.go       - loads seed data into MongoDB
+Makefile               - common build, test, docs, and Docker commands
+internal/api/docs      - generated Swagger/OpenAPI spec (swag init output, committed)
 internal/api/health    - GET /health route + handler
 internal/api/loads     - routes.go, GET /loads and GET /load handlers, service.go, repository.go
 internal/db            - MongoDB client setup (shared by cmd/api and cmd/seed)

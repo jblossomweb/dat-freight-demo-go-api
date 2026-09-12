@@ -1,0 +1,103 @@
+name: Validate Code
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    name: Run Linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go Ecosystem
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Dependencies
+        run: make deps
+
+      - name: Run Linter
+        run: make vet
+
+  staticcheck:
+    name: Run Static Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go Ecosystem
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Dependencies
+        run: make deps
+
+      - name: Install Tools
+        run: make tools
+
+      - name: Run Static Checks
+        run: make staticcheck
+
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go Ecosystem
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Dependencies
+        run: make deps
+
+      - name: Run Tests
+        run: make test
+
+  docs:
+    name: Verify Generated Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go Ecosystem
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Dependencies
+        run: make deps
+
+      - name: Verify Generated Docs
+        run: make docs-check
+
+  build:
+    name: Run Type/Build Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go Ecosystem
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Dependencies
+        run: make deps
+
+      - name: Run Type/Build Checks
+        run: make build
