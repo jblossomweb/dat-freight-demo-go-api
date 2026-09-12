@@ -5,9 +5,9 @@ import (
 )
 
 type config struct {
-	port     string
 	mongoURI string
 	dbName   string
+	seedPath string
 }
 
 func loadConfig() (config, error) {
@@ -17,8 +17,8 @@ func loadConfig() (config, error) {
 	}
 
 	return config{
-		port:     env.Get("PORT", "8080"),
 		mongoURI: mongoURI,
 		dbName:   env.Get("MONGO_DB_NAME", "freight"),
+		seedPath: env.Get("SEED_FILE", "internal/db/seeds/loads.json"),
 	}, nil
 }

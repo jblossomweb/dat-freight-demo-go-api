@@ -86,6 +86,13 @@ fast when it is unset or empty, while retaining defaults for `PORT` and
 required environment variable in README. Added unit tests for configured,
 missing, and empty Mongo URI values.
 
+**Phase 13 (done):** Refactored command configuration and composition for
+readability: split the API composition root into configuration, server setup,
+and lifecycle files; extracted shared environment helpers into `internal/env`;
+and added a dedicated seed configuration. Expanded unit coverage for shared
+environment behavior and route registration, including method handling. No
+repository integration tests were added; those remain a separate follow-up.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

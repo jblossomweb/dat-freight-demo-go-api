@@ -22,26 +22,27 @@ type seedFile struct {
 }
 
 func main() {
-	mongoURI := getEnv("MONGO_URI", "mongodb://localhost:27017")
-	dbName := getEnv("MONGO_DB_NAME", "freight")
-	seedPath := getEnv("SEED_FILE", "internal/db/seeds/loads.json")
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	client, err := db.Connect(ctx, mongoURI)
+	client, err := db.Connect(ctx, cfg.mongoURI)
 	if err != nil {
 		log.Fatalf("failed to connect to mongo: %v", err)
 	}
 	defer client.Disconnect(context.Background())
 
-	loads, err := readLoads(seedPath)
+	loads, err := readLoads(cfg.seedPath)
 	if err != nil {
 		log.Fatalf("failed to read seed file: %v", err)
 	}
-	log.Printf("read %d loads from %s", len(loads), seedPath)
+	log.Printf("read %d loads from %s", len(loads), cfg.seedPath)
 
-	collection := client.Database(dbName).Collection("loads")
+	collection := client.Database(cfg.dbName).Collection("loads")
 
 	if err := collection.Drop(ctx); err != nil {
 		log.Fatalf("failed to clear existing loads collection: %v", err)
@@ -66,7 +67,7 @@ func main() {
 		log.Fatalf("failed to create index on id: %v", err)
 	}
 
-	log.Printf("done: %d loads seeded into %s.loads", inserted, dbName)
+	log.Printf("done: %d loads seeded into %s.loads", inserted, cfg.dbName)
 }
 
 // createIDIndex ensures a unique index on the "id" field, since that's the
@@ -91,11 +92,4 @@ func readLoads(path string) ([]bson.M, error) {
 		return nil, err
 	}
 	return sf.Loads, nil
-}
-
-func getEnv(key, fallback string) string {
-	if v, ok := os.LookupEnv(key); ok && v != "" {
-		return v
-	}
-	return fallback
 }
