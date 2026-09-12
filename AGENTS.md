@@ -80,6 +80,12 @@ unit coverage for query parsing, Mongo filter construction, HTTP handlers,
 service behavior, and health responses. Repository integration tests remain
 deferred to a separate follow-up commit.
 
+**Phase 12 (done):** Made `MONGO_URI` required for the API so startup fails
+fast when it is unset or empty, while retaining defaults for `PORT` and
+`MONGO_DB_NAME`. Removed Compose's Mongo URI fallback and documented the
+required environment variable in README. Added unit tests for configured,
+missing, and empty Mongo URI values.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

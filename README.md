@@ -134,11 +134,11 @@ compose.yml            - api + mongo services
 
 ## Environment variables
 
-| Var           | Default               | Description               |
-| ------------- | --------------------- | ------------------------- |
-| PORT          | 8080                  | HTTP listen port          |
-| MONGO_URI     | mongodb://mongo:27017 | MongoDB connection string |
-| MONGO_DB_NAME | freight               | Target database name      |
+| Var           | Default  | Description               |
+| ------------- | -------- | ------------------------- |
+| PORT          | 8080     | HTTP listen port          |
+| MONGO_URI     | required | MongoDB connection string |
+| MONGO_DB_NAME | freight  | Target database name      |
 
 `MONGO_URI` is read directly from the environment by both `cmd/api` and
 `cmd/seed` (and passed through by `compose.yml` from `.env`), so pointing at a

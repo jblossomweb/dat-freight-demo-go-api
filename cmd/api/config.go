@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type config struct {
 	port     string
@@ -8,12 +11,25 @@ type config struct {
 	dbName   string
 }
 
-func loadConfig() config {
+func loadConfig() (config, error) {
+	mongoURI, err := requiredEnv("MONGO_URI")
+	if err != nil {
+		return config{}, err
+	}
+
 	return config{
 		port:     getEnv("PORT", "8080"),
-		mongoURI: getEnv("MONGO_URI", "mongodb://localhost:27017"),
+		mongoURI: mongoURI,
 		dbName:   getEnv("MONGO_DB_NAME", "freight"),
+	}, nil
+}
+
+func requiredEnv(key string) (string, error) {
+	value, ok := os.LookupEnv(key)
+	if !ok || value == "" {
+		return "", fmt.Errorf("required environment variable %s is not set", key)
 	}
+	return value, nil
 }
 
 func getEnv(key, fallback string) string {
