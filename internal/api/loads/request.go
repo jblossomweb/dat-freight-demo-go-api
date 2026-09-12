@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -54,20 +55,32 @@ type QueryRequest struct {
 func ParseQuery(q url.Values) (QueryRequest, error) {
 	req := QueryRequest{StartRow: 0, EndRow: defaultPageSize}
 
-	if v := q.Get("startRow"); v != "" {
-		n, err := strconv.Atoi(v)
+	// offset is a human-friendly alias for startRow; ignored if startRow is set.
+	startRowParam := q.Get("startRow")
+	if startRowParam == "" {
+		startRowParam = q.Get("offset")
+	}
+	if startRowParam != "" {
+		n, err := strconv.Atoi(startRowParam)
 		if err != nil || n < 0 {
-			return req, fmt.Errorf("invalid startRow: %q", v)
+			return req, fmt.Errorf("invalid startRow: %q", startRowParam)
 		}
 		req.StartRow = n
 	}
 
+	// limit is a human-friendly alias for endRow (startRow+limit); ignored if endRow is set.
 	if v := q.Get("endRow"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < req.StartRow {
 			return req, fmt.Errorf("invalid endRow: %q (must not be less than startRow)", v)
 		}
 		req.EndRow = n
+	} else if v := q.Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 0 {
+			return req, fmt.Errorf("invalid limit: %q", v)
+		}
+		req.EndRow = req.StartRow + n
 	} else {
 		req.EndRow = req.StartRow + defaultPageSize
 	}
@@ -84,6 +97,10 @@ func ParseQuery(q url.Values) (QueryRequest, error) {
 	}
 
 	req.QuickSearch = q.Get("quickSearch")
+	if req.QuickSearch == "" {
+		// q is a shorthand alias for quickSearch; ignored if quickSearch is already set.
+		req.QuickSearch = q.Get("q")
+	}
 
 	if v := q.Get("sortModel"); v != "" {
 		var entries []SortModelEntry
@@ -92,6 +109,21 @@ func ParseQuery(q url.Values) (QueryRequest, error) {
 		}
 		if len(entries) > 0 {
 			req.Sort = &entries[0]
+		}
+	}
+
+	// sortBy/sortDir are a human-friendly alias for a single-column sortModel
+	// entry; ignored if sortModel already specified a sort. "desc"/"descending"
+	// (case-insensitive) sort descending; any other value (including empty or
+	// invalid) defaults to ascending, matching sortModel's own lenient handling.
+	if req.Sort == nil {
+		if sortBy := q.Get("sortBy"); sortBy != "" {
+			sortDir := "asc"
+			switch strings.ToLower(q.Get("sortDir")) {
+			case "desc", "descending":
+				sortDir = "desc"
+			}
+			req.Sort = &SortModelEntry{ColID: sortBy, Sort: sortDir}
 		}
 	}
 

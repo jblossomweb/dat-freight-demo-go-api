@@ -40,6 +40,16 @@ code under `internal/api/*`, shared infrastructure (`internal/db`) at the top
 level. `main.go` is now a pure composition root with no inline HTTP handlers.
 No behavior change.
 
+**Phase 7 (done):** More human-friendly aliases on `GET /loads`, plus file
+naming cleanups — added `q` (alias for `quickSearch`), `sortBy`/`sortDir`
+(alias for a single-column `sortModel` entry; `sortDir` accepts
+`asc`/`ascending`/`desc`/`descending` case-insensitively and defaults to
+ascending for any other value, matching `sortModel`'s own lenient handling),
+and `offset`/`limit` (aliases for `startRow`/`endRow`). All follow the
+existing alias precedence rule: the real AG Grid param wins if present.
+Renamed `list.go`/`get.go` to `list_handler.go`/`get_handler.go` and
+`mongo.go` to `connect.go` for clarity. No other behavior change.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
