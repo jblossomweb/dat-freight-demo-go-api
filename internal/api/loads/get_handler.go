@@ -2,12 +2,10 @@ package loads
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"time"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type getResponse struct {
@@ -22,8 +20,8 @@ type getMeta struct {
 }
 
 // GetHandler returns the GET /load/{id} and GET /load?id=... handler backed by
-// the given collection. Responds 404 with a safe error message if not found.
-func GetHandler(collection *mongo.Collection) http.HandlerFunc {
+// the given service. Responds 404 with a safe error message if not found.
+func GetHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -36,12 +34,11 @@ func GetHandler(collection *mongo.Collection) http.HandlerFunc {
 			return
 		}
 
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
 		defer cancel()
 
-		var load Load
-		err := collection.FindOne(ctx, bson.M{"id": id}).Decode(&load)
-		if err == mongo.ErrNoDocuments {
+		load, err := service.GetLoad(ctx, id)
+		if errors.Is(err, ErrNotFound) {
 			writeError(w, http.StatusNotFound, "LOAD_NOT_FOUND", "No load was found with the given id.")
 			return
 		}

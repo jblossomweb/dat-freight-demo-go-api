@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 )
 
+// Pagination and timeout tuning: change these values to adjust default/max page
+// size and how long a single request may take to query MongoDB.
 const (
-	defaultPageSize = 25
-	maxPageSize     = 500
+	defaultPageSize = 25              // used when the request omits both startRow and endRow
+	maxPageSize     = 500             // hard cap on rows per page, enforced regardless of requested endRow
+	queryTimeout    = 10 * time.Second // max time allowed for a single request's Mongo queries
 )
 
 // aliasSetFields lists columns that accept a simpler query param (e.g.

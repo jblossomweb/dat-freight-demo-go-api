@@ -3,6 +3,7 @@ package loads
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -10,10 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type queryResponse struct {
@@ -55,8 +52,8 @@ type errorBody struct {
 	Message string `json:"message"`
 }
 
-// Handler returns the GET /loads handler backed by the given collection.
-func Handler(collection *mongo.Collection) http.HandlerFunc {
+// ListHandler returns the GET /loads handler backed by the given service.
+func ListHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -66,51 +63,17 @@ func Handler(collection *mongo.Collection) http.HandlerFunc {
 			return
 		}
 
-		filter, err := BuildMongoFilter(req)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "LOAD_QUERY_FAILED", err.Error())
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
 		defer cancel()
 
-		totalRows, err := collection.EstimatedDocumentCount(ctx)
+		rows, totalRows, filteredRows, err := service.ListLoads(ctx, req)
 		if err != nil {
-			log.Printf("estimated count failed: %v", err)
-			writeError(w, http.StatusInternalServerError, "LOAD_QUERY_FAILED", "Unable to load freight data.")
-			return
-		}
-
-		filteredRows, err := collection.CountDocuments(ctx, filter)
-		if err != nil {
-			log.Printf("count loads failed: %v", err)
-			writeError(w, http.StatusInternalServerError, "LOAD_QUERY_FAILED", "Unable to load freight data.")
-			return
-		}
-
-		findOpts := options.Find().
-			SetSkip(int64(req.StartRow)).
-			SetLimit(int64(req.EndRow - req.StartRow))
-		if req.Sort != nil {
-			direction := 1
-			if req.Sort.Sort == "desc" {
-				direction = -1
+			var invalidQuery *InvalidQueryError
+			if errors.As(err, &invalidQuery) {
+				writeError(w, http.StatusBadRequest, "LOAD_QUERY_FAILED", err.Error())
+				return
 			}
-			findOpts.SetSort(bson.D{{Key: req.Sort.ColID, Value: direction}})
-		}
-
-		cursor, err := collection.Find(ctx, filter, findOpts)
-		if err != nil {
-			log.Printf("find loads failed: %v", err)
-			writeError(w, http.StatusInternalServerError, "LOAD_QUERY_FAILED", "Unable to load freight data.")
-			return
-		}
-		defer cursor.Close(ctx)
-
-		rows := []Load{}
-		if err := cursor.All(ctx, &rows); err != nil {
-			log.Printf("decode loads failed: %v", err)
+			log.Printf("list loads failed: %v", err)
 			writeError(w, http.StatusInternalServerError, "LOAD_QUERY_FAILED", "Unable to load freight data.")
 			return
 		}

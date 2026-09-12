@@ -31,6 +31,15 @@ by its `id` field. Response: `{ requestURL, meta: {responseTimeMs, timestamp},
 result }`. Responds 404 (`LOAD_NOT_FOUND`) if no match, 400 (`LOAD_ID_REQUIRED`)
 if no id given.
 
+**Phase 6 (done):** Internal cleanups and refactors — centralized the Mongo
+query timeout (previously a duplicated magic number) into a single constant,
+introduced a repository/service/routes layering so HTTP handlers never call
+the Mongo driver directly, and extracted `GET /health` out of `main.go` into
+its own `internal/health` package. Regrouped packages by role: HTTP-facing
+code under `internal/api/*`, shared infrastructure (`internal/db`) at the top
+level. `main.go` is now a pure composition root with no inline HTTP handlers.
+No behavior change.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
@@ -41,10 +50,18 @@ if no id given.
 
 - `cmd/api/main.go` — server entrypoint, env config, Mongo connection at startup
 - `cmd/seed/main.go` — one-off command to load `internal/db/seeds/loads.json` into the `loads` collection
-- `internal/loads` — `GET /loads` and `GET /load` handlers, query param parsing, Mongo filter/sort building
-- `internal/db` — MongoDB client setup (`db.Connect`)
+- `internal/api/health` — `GET /health` route + handler (live Mongo ping per request)
+- `internal/api/loads` — `routes.go` (`RegisterRoutes`, owns the package's route
+  paths), `GET /loads` and `GET /load` handlers (HTTP transport only, no direct
+  Mongo calls), query param parsing, Mongo filter/sort building, plus
+  `service.go` (business logic) and `repository.go` (the only place that talks
+  to `mongo-driver`)
+- `internal/db` — MongoDB client setup (`db.Connect`), shared by both
+  `cmd/api` and `cmd/seed`
 - `internal/db/seeds` — seed data files
-- `internal/` — reserved for future packages (handlers, repositories, models)
+- `internal/` — reserved for future packages, grouped by role (`api/` for
+  HTTP-facing packages; a `shared/` grouping can be introduced later if a
+  second cross-cutting package joins `db`)
 
 ## Conventions
 

@@ -30,13 +30,14 @@ Expect `200 OK` with `{"status":"ok","mongo":"ok"}` once both containers are hea
 ## Structure
 
 ```
-cmd/api/main.go      - HTTP server entrypoint
-cmd/seed/main.go     - loads seed data into MongoDB
-internal/loads       - GET /loads handler (pagination/sort/filter/quicksearch)
-internal/db          - MongoDB client setup
-internal/db/seeds    - seed data (loads.json)
-Dockerfile           - multi-stage build for the api service
-compose.yml          - api + mongo services
+cmd/api/main.go        - HTTP server entrypoint (composition root)
+cmd/seed/main.go       - loads seed data into MongoDB
+internal/api/health    - GET /health route + handler
+internal/api/loads     - routes.go, GET /loads and GET /load handlers, service.go, repository.go
+internal/db            - MongoDB client setup (shared by cmd/api and cmd/seed)
+internal/db/seeds      - seed data (loads.json)
+Dockerfile             - multi-stage build for the api service
+compose.yml            - api + mongo services
 ```
 
 ## Environment variables

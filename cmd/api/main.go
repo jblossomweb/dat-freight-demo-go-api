@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -11,10 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"dat-freight-demo-api/internal/api/health"
+	"dat-freight-demo-api/internal/api/loads"
 	"dat-freight-demo-api/internal/db"
-	"dat-freight-demo-api/internal/loads"
-
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func main() {
@@ -38,11 +36,10 @@ func main() {
 	}()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", healthHandler(client))
-	loadsCollection := client.Database(dbName).Collection("loads")
-	mux.HandleFunc("GET /loads", loads.Handler(loadsCollection))
-	mux.HandleFunc("GET /load/{id}", loads.GetHandler(loadsCollection))
-	mux.HandleFunc("GET /load", loads.GetHandler(loadsCollection))
+	health.RegisterRoutes(mux, client)
+	loadsRepo := loads.NewRepository(client.Database(dbName).Collection("loads"))
+	loadsService := loads.NewService(loadsRepo)
+	loads.RegisterRoutes(mux, loadsService)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -63,30 +60,6 @@ func main() {
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("error during server shutdown: %v", err)
-	}
-}
-
-func healthHandler(client *mongo.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		pingCtx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-
-		status := "ok"
-		code := http.StatusOK
-		mongoStatus := "ok"
-
-		if err := client.Ping(pingCtx, nil); err != nil {
-			status = "degraded"
-			code = http.StatusServiceUnavailable
-			mongoStatus = "unreachable"
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(code)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"status": status,
-			"mongo":  mongoStatus,
-		})
 	}
 }
 
