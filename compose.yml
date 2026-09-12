@@ -1,0 +1,30 @@
+services:
+  mongo:
+    # pinned to 7: mongo:8 fails to start on hosts with Linux kernel 6.19+ (SERVER-121912)
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: ${PORT:-8080}
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
+      MONGO_DB_NAME: ${MONGO_DB_NAME:-freight}
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
