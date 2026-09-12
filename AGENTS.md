@@ -98,7 +98,8 @@ stable version (`swaggo/swag` v1.16.6) so upstream generator changes cannot
 unexpectedly make `docs-check` fail. Updated the coverage target to exclude
 generated Swagger output from the coverage scan while retaining the
 overall summary and HTML report. Moved the Swagger UI route from `/swagger/`
-to `/docs/`.
+to `/docs/`, with the UI at `GET /docs/index.html` and the raw spec at
+`GET /docs/doc.json`.
 
 **Phase 15 (done):** Added a lightweight, opt-in MongoDB repository integration
 suite covering counts, filtered/sorted/paginated reads, successful lookups, and

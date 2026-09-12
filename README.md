@@ -150,10 +150,13 @@ Interactive Swagger UI (generated from Go code annotations via
 [swaggo/swag](https://github.com/swaggo/swag)):
 
 ```
-http://localhost:8080/swagger/index.html
+http://localhost:8080/docs/index.html
 ```
 
-The raw OpenAPI spec is served at `http://localhost:8080/swagger/doc.json`.
+The raw OpenAPI spec is served at `http://localhost:8080/docs/doc.json`.
+
+Swagger is intentionally unauthenticated for this demo. A private production
+API should authenticate or otherwise restrict access to its documentation.
 
 The spec is generated into `internal/api/docs/` and committed to the repo (it
 is imported by `cmd/api/main.go` to register itself with the Swagger UI

@@ -29,7 +29,7 @@ func newServer(client *mongo.Client, dbName string) *http.Server {
 	loadsService := loads.NewService(loadsRepo)
 	loads.RegisterRoutes(mux, loadsService)
 
-	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+	mux.Handle("/docs/", httpSwagger.WrapHandler)
 
 	return &http.Server{
 		Handler: mux,

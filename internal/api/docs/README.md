@@ -12,7 +12,7 @@ make docs
 The generated files are:
 
 - `docs.go` registers the OpenAPI document with the Go application and is used
-  by the Swagger UI at `/swagger/index.html`.
+  by the Swagger UI at `/docs/index.html`.
 - `swagger.json` is the standalone OpenAPI JSON document.
 - `swagger.yaml` is the standalone OpenAPI YAML document.
 
