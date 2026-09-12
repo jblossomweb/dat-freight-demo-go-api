@@ -101,3 +101,38 @@ jobs:
 
       - name: Run Type/Build Checks
         run: make build
+
+  integration:
+    name: Run Mongo Integration Tests
+    runs-on: ubuntu-latest
+    env:
+      # CI has it's own MongoDB service lifecycle, defined below.
+      # This prevents Make from starting a redundant local Docker Compose service.
+      CI: "true"
+      MONGO_TEST_URI: mongodb://localhost:27017
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go Ecosystem
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Dependencies
+        run: make deps
+
+      - name: Run Mongo Integration Tests
+        run: make test-integration

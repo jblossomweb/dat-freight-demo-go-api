@@ -13,6 +13,20 @@ services:
       timeout: 5s
       retries: 5
 
+  mongo-integration:
+    # Dedicated integration-test MongoDB. Never shares the app database volume.
+    image: mongo:7
+    profiles: [integration]
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-integration-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
     restart: unless-stopped
@@ -28,3 +42,4 @@ services:
 
 volumes:
   mongo-data:
+  mongo-integration-data:

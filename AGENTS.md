@@ -100,6 +100,12 @@ generated Swagger output from the coverage scan while retaining the
 overall summary and HTML report. Moved the Swagger UI route from `/swagger/`
 to `/docs/`.
 
+**Phase 15 (done):** Added a lightweight, opt-in MongoDB repository integration
+suite covering counts, filtered/sorted/paginated reads, successful lookups, and
+not-found translation. Added `make test-integration` and an independent Mongo 7
+service job to the reusable validation workflow. Unit tests and Git hooks remain
+Mongo-free; integration coverage runs separately in CI and on demand locally.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

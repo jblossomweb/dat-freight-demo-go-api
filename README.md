@@ -55,7 +55,60 @@ make seed        # seed MongoDB from the local host
 make docker-up   # build and start the Docker Compose stack
 make docker-down # stop and remove the Docker Compose stack
 make docker-logs # follow API container logs
+make test-integration       # run MongoDB integration tests
+make mongo-integration-up   # start isolated integration MongoDB
+make mongo-integration-down # remove isolated integration MongoDB
 ```
+
+### Tests
+
+To run unit tests at any time:
+
+```bash
+make test
+```
+
+This will also be triggered by githooks and in CI.
+
+The normal
+`make test` command does not require MongoDB.
+
+### Integration Tests
+
+The integration suite has a separate command:
+
+```bash
+make test-integration
+```
+
+It uses a unique temporary database, only spins it up on demand, and cleans it up after finishing.
+
+Local runs default to the isolated integration MongoDB at `mongodb://localhost:27018`.
+
+Set `MONGO_TEST_URI` explicitly only when using a different dedicated test instance.
+
+`MONGO_TEST_URI` is included in `.env.example` as a documented override, but
+it should be noted that Make does not automatically load `.env`, so it doesn't read it from here.
+
+The integration tests' MongoDB is completely separate from the application's MongoDB.
+
+#### Local Development
+
+In a local dev environment, the test database runs on host port `27018` with its own Docker volume.
+
+The `test-integration` target starts it, waits for it to become healthy, and
+removes it automatically after the test completes.
+
+#### CI
+
+In CI, `CI=true` selects the internal `test-integration-ci` path, which uses
+the GitHub Actions MongoDB service without starting the local Compose service:
+
+```bash
+CI=true MONGO_TEST_URI=mongodb://localhost:27017 make test-integration
+```
+
+`MONGO_TEST_URI` must be set explicitly in CI. It intentionally has no CI fallback
 
 ## Coming from Node.js?
 
