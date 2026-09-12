@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"dat-freight-demo-api/internal/db"
+	"dat-freight-demo-api/internal/loads"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -19,6 +20,7 @@ import (
 func main() {
 	port := getEnv("PORT", "8080")
 	mongoURI := getEnv("MONGO_URI", "mongodb://localhost:27017")
+	dbName := getEnv("MONGO_DB_NAME", "freight")
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -37,6 +39,10 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", healthHandler(client))
+	loadsCollection := client.Database(dbName).Collection("loads")
+	mux.HandleFunc("GET /loads", loads.Handler(loadsCollection))
+	mux.HandleFunc("GET /load/{id}", loads.GetHandler(loadsCollection))
+	mux.HandleFunc("GET /load", loads.GetHandler(loadsCollection))
 
 	srv := &http.Server{
 		Addr:    ":" + port,
