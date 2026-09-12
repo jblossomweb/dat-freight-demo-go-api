@@ -13,6 +13,8 @@ freight loads, plus a single-load lookup endpoint.
 
 ## Run
 
+Get everything setup, and start the 2 dev containers:
+
 ```bash
 cp .env.example .env
 make setup
@@ -21,11 +23,21 @@ make docker-up
 
 ## Verify
 
+Verify the dev database and API server is up:
+
 ```bash
 curl -i http://localhost:8080/health
 ```
 
 Expect `200 OK` with `{"status":"ok","mongo":"ok"}` once both containers are healthy.
+
+## Seed Data
+
+In a second terminal, seed the local dev database:
+
+```bash
+MONGO_URI=mongodb://localhost:27017 make seed
+```
 
 # Developer Workflow
 
@@ -87,8 +99,8 @@ Local runs default to the isolated integration MongoDB at `mongodb://localhost:2
 
 Set `MONGO_TEST_URI` explicitly only when using a different dedicated test instance.
 
-`MONGO_TEST_URI` is included in `.env.example` as a documented override, but
-it should be noted that Make does not automatically load `.env`, so it doesn't read it from here.
+Make does not automatically load `.env`, so pass `MONGO_TEST_URI` explicitly
+when using a different dedicated test instance.
 
 The integration tests' MongoDB is completely separate from the application's MongoDB.
 

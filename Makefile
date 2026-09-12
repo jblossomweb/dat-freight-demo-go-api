@@ -103,7 +103,7 @@ run:
 	$(GO) run ./cmd/api
 
 seed:
-	MONGO_URI="$(MONGO_URI)" MONGO_DB_NAME="$(MONGO_DB_NAME)" $(GO) run ./cmd/seed
+	@MONGO_URI="$(MONGO_URI)" MONGO_DB_NAME="$(MONGO_DB_NAME)" $(GO) run ./cmd/seed
 
 docker-up:
 	docker compose up --build

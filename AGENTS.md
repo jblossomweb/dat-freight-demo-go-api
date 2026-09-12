@@ -107,6 +107,12 @@ not-found translation. Added `make test-integration` and an independent Mongo 7
 service job to the reusable validation workflow. Unit tests and Git hooks remain
 Mongo-free; integration coverage runs separately in CI and on demand locally.
 
+**Phase 16 (done):** Hardened local and container security by running the API
+as a non-root distroless user, binding local Mongo ports to loopback only, and
+preventing Make from echoing Mongo connection strings. Improved README guidance
+for development seeding, isolated local/CI integration tests, required test
+URIs, and intentionally unauthenticated demo Swagger documentation.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
