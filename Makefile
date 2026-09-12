@@ -1,7 +1,8 @@
 .DEFAULT_GOAL := help
 
 GO := go
-SWAG := $(GO) run github.com/swaggo/swag/cmd/swag@latest
+SWAG_VERSION ?= v1.16.6
+SWAG := $(GO) run github.com/swaggo/swag/cmd/swag@$(SWAG_VERSION)
 STATICCHECK_VERSION ?= v0.8.1
 STATICCHECK := $(shell $(GO) env GOPATH)/bin/staticcheck
 DOCS_DIR := internal/api/docs
@@ -48,7 +49,7 @@ test:
 	$(GO) test ./...
 
 coverage:
-	$(GO) test -coverprofile=coverage.out ./...
+	$(GO) test -coverprofile=coverage.out $$(go list ./... | grep -v '/internal/api/docs$$')
 	$(GO) tool cover -func=coverage.out
 	$(GO) tool cover -html=coverage.out
 

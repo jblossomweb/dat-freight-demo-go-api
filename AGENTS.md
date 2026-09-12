@@ -93,6 +93,13 @@ and added a dedicated seed configuration. Expanded unit coverage for shared
 environment behavior and route registration, including method handling. No
 repository integration tests were added; those remain a separate follow-up.
 
+**Phase 14 (done):** Pinned the Swagger generator to the latest compatible
+stable version (`swaggo/swag` v1.16.6) so upstream generator changes cannot
+unexpectedly make `docs-check` fail. Updated the coverage target to exclude
+generated Swagger output from the coverage scan while retaining the
+overall summary and HTML report. Moved the Swagger UI route from `/swagger/`
+to `/docs/`.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
