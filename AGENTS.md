@@ -50,6 +50,14 @@ existing alias precedence rule: the real AG Grid param wins if present.
 Renamed `list.go`/`get.go` to `list_handler.go`/`get_handler.go` and
 `mongo.go` to `connect.go` for clarity. No other behavior change.
 
+**Phase 8 (done):** Fixed a missing index on the `id` field — it's the
+primary lookup key for `GET /load/{id}`, the `id` alias, and quicksearch's
+`$or`, but had no index besides Mongo's default `_id`, causing a full
+collection scan on every such query. `cmd/seed` now creates a unique index
+on `{id: 1}` after inserting. Verified via `explain()` that lookups on `id`
+now use `IXSCAN` instead of `COLLSCAN`. Existing deployments need to re-run
+the seed command to pick up the index.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

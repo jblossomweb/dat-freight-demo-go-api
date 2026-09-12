@@ -51,7 +51,8 @@ compose.yml            - api + mongo services
 ## Seeding data
 
 With the `mongo` container running, load `internal/db/seeds/loads.json` into the
-`loads` collection (drops and replaces any existing documents):
+`loads` collection (drops and replaces any existing documents, and ensures a
+unique index on `id`):
 
 ```bash
 docker compose up -d mongo

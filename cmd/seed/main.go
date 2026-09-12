@@ -11,6 +11,8 @@ import (
 	"dat-freight-demo-api/internal/db"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const batchSize = 1000
@@ -60,7 +62,21 @@ func main() {
 		log.Printf("inserted %d/%d", inserted, len(loads))
 	}
 
+	if err := createIDIndex(ctx, collection); err != nil {
+		log.Fatalf("failed to create index on id: %v", err)
+	}
+
 	log.Printf("done: %d loads seeded into %s.loads", inserted, dbName)
+}
+
+// createIDIndex ensures a unique index on the "id" field, since that's the
+// primary lookup key for GET /load/{id} and the id alias/filter on GET /loads.
+func createIDIndex(ctx context.Context, collection *mongo.Collection) error {
+	_, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "id", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	return err
 }
 
 func readLoads(path string) ([]bson.M, error) {
