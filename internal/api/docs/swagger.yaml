@@ -1,0 +1,285 @@
+basePath: /
+definitions:
+  health.Response:
+    properties:
+      mongo:
+        example: ok
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  health.UnavailableResponse:
+    properties:
+      mongo:
+        example: unreachable
+        type: string
+      status:
+        example: degraded
+        type: string
+    type: object
+  loads.ErrorBody:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  loads.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/loads.ErrorBody'
+    type: object
+  loads.FilterModelEntry:
+    properties:
+      dateFrom:
+        type: string
+      dateTo:
+        type: string
+      filter: {}
+      filterTo: {}
+      filterType:
+        type: string
+      type:
+        type: string
+      values:
+        items:
+          type: string
+        type: array
+    type: object
+  loads.GetMeta:
+    properties:
+      responseTimeMs:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  loads.GetResponse:
+    properties:
+      meta:
+        $ref: '#/definitions/loads.GetMeta'
+      requestURL:
+        type: string
+      result:
+        $ref: '#/definitions/loads.Load'
+    type: object
+  loads.ListMeta:
+    properties:
+      currentPage:
+        description: 1-indexed, derived from startRow/pageSize
+        type: integer
+      hasNextPage:
+        description: whether more filtered rows exist beyond this page
+        type: boolean
+      nextPageURL:
+        description: path+query for the next page; null when there is no next page
+        type: string
+      numPages:
+        description: ceil(filteredRows/pageSize)
+        type: integer
+      numResults:
+        description: rows matching the current filters/quicksearch; same value as
+          lastRow
+        type: integer
+      numTotal:
+        description: full collection size, ignoring filters/quicksearch
+        type: integer
+      pageSize:
+        description: derived from endRow-startRow
+        type: integer
+      responseTimeMs:
+        description: server-side processing time for this request
+        type: integer
+      timestamp:
+        description: server time the response was generated
+        type: string
+    type: object
+  loads.ListResponse:
+    properties:
+      lastRow:
+        type: integer
+      meta:
+        $ref: '#/definitions/loads.ListMeta'
+      query:
+        $ref: '#/definitions/loads.QueryEcho'
+      requestURL:
+        description: the incoming path+query exactly as received, for debugging URL-encoding
+          issues
+        type: string
+      rows:
+        items:
+          $ref: '#/definitions/loads.Load'
+        type: array
+    type: object
+  loads.Load:
+    properties:
+      companyName:
+        type: string
+      date:
+        type: string
+      destination:
+        type: string
+      distance:
+        type: number
+      equipmentType:
+        type: string
+      id:
+        type: string
+      origin:
+        type: string
+      price:
+        type: number
+      status:
+        type: string
+      weight:
+        type: number
+    type: object
+  loads.QueryEcho:
+    properties:
+      endRow:
+        type: integer
+      filterModel:
+        additionalProperties:
+          $ref: '#/definitions/loads.FilterModelEntry'
+        type: object
+      quickSearch:
+        type: string
+      sortModel:
+        items:
+          $ref: '#/definitions/loads.SortModelEntry'
+        type: array
+      startRow:
+        type: integer
+    type: object
+  loads.SortModelEntry:
+    properties:
+      colId:
+        type: string
+      sort:
+        description: '"asc" or "desc"'
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: |-
+    REST API backing the DAT freight demo SPA (AG Grid frontend).
+    Implements the AG Grid server-side row model contract
+    (pagination, sort, filter, quicksearch) for freight loads,
+    plus a single-load lookup endpoint.
+  title: dat-freight-demo-api
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Performs a live MongoDB ping on every request (not cached startup
+        state).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/health.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/health.UnavailableResponse'
+      summary: Liveness/readiness check
+      tags:
+      - health
+  /load:
+    get:
+      parameters:
+      - description: Load id (query form); required if path id is omitted
+        in: query
+        name: id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/loads.GetResponse'
+        "400":
+          description: no id provided
+          schema:
+            $ref: '#/definitions/loads.ErrorResponse'
+        "404":
+          description: no load found
+          schema:
+            $ref: '#/definitions/loads.ErrorResponse'
+      summary: Fetch a single load by id
+      tags:
+      - loads
+  /load/{id}:
+    get:
+      parameters:
+      - description: Load id (path form)
+        in: path
+        name: id
+        type: string
+      - description: Load id (query form); required if path id is omitted
+        in: query
+        name: id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/loads.GetResponse'
+        "400":
+          description: no id provided
+          schema:
+            $ref: '#/definitions/loads.ErrorResponse'
+        "404":
+          description: no load found
+          schema:
+            $ref: '#/definitions/loads.ErrorResponse'
+      summary: Fetch a single load by id
+      tags:
+      - loads
+  /loads:
+    get:
+      description: |-
+        Supports pagination, single-column sort, multi-column filtering, and
+        quicksearch, plus human-friendly aliases for each param.
+      parameters:
+      - description: 'First row index (inclusive); alias: offset'
+        in: query
+        name: startRow
+        type: integer
+      - description: 'Row index one past the last requested (exclusive); alias: limit'
+        in: query
+        name: endRow
+        type: integer
+      - description: 'Substring match across every field; alias: q'
+        in: query
+        name: quickSearch
+        type: string
+      - description: 'JSON-encoded [{colId,sort}]; alias: sortBy/sortDir'
+        in: query
+        name: sortModel
+        type: string
+      - description: JSON-encoded AG Grid simple filter model (text/number/date/set)
+        in: query
+        name: filterModel
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/loads.ListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/loads.ErrorResponse'
+      summary: Query freight loads (AG Grid server-side row model contract)
+      tags:
+      - loads
+swagger: "2.0"

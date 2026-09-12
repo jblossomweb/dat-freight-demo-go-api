@@ -1,0 +1,416 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API backing the DAT freight demo SPA (AG Grid frontend).\nImplements the AG Grid server-side row model contract\n(pagination, sort, filter, quicksearch) for freight loads,\nplus a single-load lookup endpoint.",
+        "title": "dat-freight-demo-api",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Performs a live MongoDB ping on every request (not cached startup state).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Liveness/readiness check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/health.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/health.UnavailableResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/load": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loads"
+                ],
+                "summary": "Fetch a single load by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Load id (query form); required if path id is omitted",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loads.GetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "no id provided",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "no load found",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/load/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loads"
+                ],
+                "summary": "Fetch a single load by id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Load id (path form)",
+                        "name": "id",
+                        "in": "path"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Load id (query form); required if path id is omitted",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loads.GetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "no id provided",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "no load found",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/loads": {
+            "get": {
+                "description": "Supports pagination, single-column sort, multi-column filtering, and\nquicksearch, plus human-friendly aliases for each param.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loads"
+                ],
+                "summary": "Query freight loads (AG Grid server-side row model contract)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "First row index (inclusive); alias: offset",
+                        "name": "startRow",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Row index one past the last requested (exclusive); alias: limit",
+                        "name": "endRow",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Substring match across every field; alias: q",
+                        "name": "quickSearch",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON-encoded [{colId,sort}]; alias: sortBy/sortDir",
+                        "name": "sortModel",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON-encoded AG Grid simple filter model (text/number/date/set)",
+                        "name": "filterModel",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "health.Response": {
+            "type": "object",
+            "properties": {
+                "mongo": {
+                    "type": "string",
+                    "example": "ok"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                }
+            }
+        },
+        "health.UnavailableResponse": {
+            "type": "object",
+            "properties": {
+                "mongo": {
+                    "type": "string",
+                    "example": "unreachable"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "degraded"
+                }
+            }
+        },
+        "loads.ErrorBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "loads.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/loads.ErrorBody"
+                }
+            }
+        },
+        "loads.FilterModelEntry": {
+            "type": "object",
+            "properties": {
+                "dateFrom": {
+                    "type": "string"
+                },
+                "dateTo": {
+                    "type": "string"
+                },
+                "filter": {},
+                "filterTo": {},
+                "filterType": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "loads.GetMeta": {
+            "type": "object",
+            "properties": {
+                "responseTimeMs": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "loads.GetResponse": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/loads.GetMeta"
+                },
+                "requestURL": {
+                    "type": "string"
+                },
+                "result": {
+                    "$ref": "#/definitions/loads.Load"
+                }
+            }
+        },
+        "loads.ListMeta": {
+            "type": "object",
+            "properties": {
+                "currentPage": {
+                    "description": "1-indexed, derived from startRow/pageSize",
+                    "type": "integer"
+                },
+                "hasNextPage": {
+                    "description": "whether more filtered rows exist beyond this page",
+                    "type": "boolean"
+                },
+                "nextPageURL": {
+                    "description": "path+query for the next page; null when there is no next page",
+                    "type": "string"
+                },
+                "numPages": {
+                    "description": "ceil(filteredRows/pageSize)",
+                    "type": "integer"
+                },
+                "numResults": {
+                    "description": "rows matching the current filters/quicksearch; same value as lastRow",
+                    "type": "integer"
+                },
+                "numTotal": {
+                    "description": "full collection size, ignoring filters/quicksearch",
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "description": "derived from endRow-startRow",
+                    "type": "integer"
+                },
+                "responseTimeMs": {
+                    "description": "server-side processing time for this request",
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "description": "server time the response was generated",
+                    "type": "string"
+                }
+            }
+        },
+        "loads.ListResponse": {
+            "type": "object",
+            "properties": {
+                "lastRow": {
+                    "type": "integer"
+                },
+                "meta": {
+                    "$ref": "#/definitions/loads.ListMeta"
+                },
+                "query": {
+                    "$ref": "#/definitions/loads.QueryEcho"
+                },
+                "requestURL": {
+                    "description": "the incoming path+query exactly as received, for debugging URL-encoding issues",
+                    "type": "string"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loads.Load"
+                    }
+                }
+            }
+        },
+        "loads.Load": {
+            "type": "object",
+            "properties": {
+                "companyName": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "destination": {
+                    "type": "string"
+                },
+                "distance": {
+                    "type": "number"
+                },
+                "equipmentType": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "origin": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "number"
+                }
+            }
+        },
+        "loads.QueryEcho": {
+            "type": "object",
+            "properties": {
+                "endRow": {
+                    "type": "integer"
+                },
+                "filterModel": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/loads.FilterModelEntry"
+                    }
+                },
+                "quickSearch": {
+                    "type": "string"
+                },
+                "sortModel": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loads.SortModelEntry"
+                    }
+                },
+                "startRow": {
+                    "type": "integer"
+                }
+            }
+        },
+        "loads.SortModelEntry": {
+            "type": "object",
+            "properties": {
+                "colId": {
+                    "type": "string"
+                },
+                "sort": {
+                    "description": "\"asc\" or \"desc\"",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

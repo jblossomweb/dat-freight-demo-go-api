@@ -58,6 +58,12 @@ on `{id: 1}` after inserting. Verified via `explain()` that lookups on `id`
 now use `IXSCAN` instead of `COLLSCAN`. Existing deployments need to re-run
 the seed command to pick up the index.
 
+**Phase 9 (done):** Added interactive API documentation via
+[swaggo/swag](https://github.com/swaggo/swag) annotations. Exported response
+types so swag can generate accurate schemas, committed the generated spec under
+`internal/api/docs/`, and served Swagger UI at `GET /swagger/index.html` via
+`github.com/swaggo/http-swagger/v2`. No behavior change to existing endpoints.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

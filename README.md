@@ -27,6 +27,12 @@ curl -i http://localhost:8080/health
 
 Expect `200 OK` with `{"status":"ok","mongo":"ok"}` once both containers are healthy.
 
+> **The `mongo` container in `compose.yml` is for local development only.** It
+> runs with no authentication configured, so it must never be exposed to a
+> public network or used as-is in production/staging. For any non-local
+> environment, point `MONGO_URI` at an authenticated, network-isolated MongoDB
+> (e.g. MongoDB Atlas) instead — see [Environment variables](#environment-variables).
+
 ## Structure
 
 ```
@@ -47,6 +53,20 @@ compose.yml            - api + mongo services
 | PORT          | 8080                  | HTTP listen port          |
 | MONGO_URI     | mongodb://mongo:27017 | MongoDB connection string |
 | MONGO_DB_NAME | freight               | Target database name      |
+
+`MONGO_URI` is read directly from the environment by both `cmd/api` and
+`cmd/seed` (and passed through by `compose.yml` from `.env`), so pointing at a
+remote database — staging, QA, or production (e.g. MongoDB Atlas) — from a
+local run is just a matter of setting it, no code changes required:
+
+```bash
+MONGO_URI="mongodb+srv://user:pass@your-cluster.mongodb.net" MONGO_DB_NAME=freight go run ./cmd/api
+```
+
+Or copy `.env.example` to `.env` and set `MONGO_URI` there before
+`docker compose up` to point the whole stack's `api` container at a remote
+database instead of the local `mongo` container (in which case you likely
+don't need the `mongo` service running at all).
 
 ## Seeding data
 

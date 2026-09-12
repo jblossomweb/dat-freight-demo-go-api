@@ -8,19 +8,32 @@ import (
 	"time"
 )
 
-type getResponse struct {
+// GetResponse is the GET /load payload.
+type GetResponse struct {
 	RequestURL string  `json:"requestURL"`
-	Meta       getMeta `json:"meta"`
+	Meta       GetMeta `json:"meta"`
 	Result     Load    `json:"result"`
 }
 
-type getMeta struct {
+// GetMeta holds response timing metadata for GET /load.
+type GetMeta struct {
 	ResponseTimeMs int64     `json:"responseTimeMs"`
 	Timestamp      time.Time `json:"timestamp"`
 }
 
 // GetHandler returns the GET /load/{id} and GET /load?id=... handler backed by
 // the given service. Responds 404 with a safe error message if not found.
+//
+// @Summary      Fetch a single load by id
+// @Tags         loads
+// @Produce      json
+// @Param        id path     string false "Load id (path form)"
+// @Param        id query    string false "Load id (query form); required if path id is omitted"
+// @Success      200 {object} loads.GetResponse
+// @Failure      400 {object} loads.ErrorResponse "no id provided"
+// @Failure      404 {object} loads.ErrorResponse "no load found"
+// @Router       /load/{id} [get]
+// @Router       /load [get]
 func GetHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -48,9 +61,9 @@ func GetHandler(service *Service) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, getResponse{
+		writeJSON(w, http.StatusOK, GetResponse{
 			RequestURL: requestedURL(r),
-			Meta: getMeta{
+			Meta: GetMeta{
 				ResponseTimeMs: time.Since(start).Milliseconds(),
 				Timestamp:      time.Now().UTC(),
 			},

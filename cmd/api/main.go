@@ -1,4 +1,13 @@
 // Command api runs the freight demo HTTP server.
+//
+// @title        dat-freight-demo-api
+// @version      1.0
+// @description  REST API backing the DAT freight demo SPA (AG Grid frontend).
+// @description  Implements the AG Grid server-side row model contract
+// @description  (pagination, sort, filter, quicksearch) for freight loads,
+// @description  plus a single-load lookup endpoint.
+// @host         localhost:8080
+// @BasePath     /
 package main
 
 import (
@@ -13,6 +22,10 @@ import (
 	"dat-freight-demo-api/internal/api/health"
 	"dat-freight-demo-api/internal/api/loads"
 	"dat-freight-demo-api/internal/db"
+
+	_ "dat-freight-demo-api/internal/api/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 func main() {
@@ -40,6 +53,7 @@ func main() {
 	loadsRepo := loads.NewRepository(client.Database(dbName).Collection("loads"))
 	loadsService := loads.NewService(loadsRepo)
 	loads.RegisterRoutes(mux, loadsService)
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

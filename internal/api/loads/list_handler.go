@@ -13,16 +13,17 @@ import (
 	"time"
 )
 
-type queryResponse struct {
+// ListResponse is the GET /loads payload.
+type ListResponse struct {
 	RequestURL string    `json:"requestURL"` // the incoming path+query exactly as received, for debugging URL-encoding issues
-	Query      queryEcho `json:"query"`
-	Meta       queryMeta `json:"meta"`
+	Query      QueryEcho `json:"query"`
+	Meta       ListMeta  `json:"meta"`
 	Rows       []Load    `json:"rows"`
 	LastRow    int64     `json:"lastRow"`
 }
 
-// queryMeta holds derived/redundant values kept for human readability alongside the AG Grid contract fields.
-type queryMeta struct {
+// ListMeta holds derived/redundant values kept for human readability alongside the AG Grid contract fields.
+type ListMeta struct {
 	NumResults     int64     `json:"numResults"`     // rows matching the current filters/quicksearch; same value as lastRow
 	NumTotal       int64     `json:"numTotal"`       // full collection size, ignoring filters/quicksearch
 	PageSize       int       `json:"pageSize"`       // derived from endRow-startRow
@@ -34,8 +35,8 @@ type queryMeta struct {
 	Timestamp      time.Time `json:"timestamp"`      // server time the response was generated
 }
 
-// queryEcho reflects the effective request params actually applied, including defaults.
-type queryEcho struct {
+// QueryEcho reflects the effective request params actually applied, including defaults.
+type QueryEcho struct {
 	QuickSearch string                      `json:"quickSearch"`
 	SortModel   []SortModelEntry            `json:"sortModel"`
 	FilterModel map[string]FilterModelEntry `json:"filterModel"`
@@ -43,16 +44,32 @@ type queryEcho struct {
 	EndRow      int                         `json:"endRow"`
 }
 
-type errorResponse struct {
-	Error errorBody `json:"error"`
+// ErrorResponse is the standard error payload shape used across this package's endpoints.
+type ErrorResponse struct {
+	Error ErrorBody `json:"error"`
 }
 
-type errorBody struct {
+// ErrorBody carries a machine-readable code plus a human-readable message.
+type ErrorBody struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
 // ListHandler returns the GET /loads handler backed by the given service.
+//
+// @Summary      Query freight loads (AG Grid server-side row model contract)
+// @Description  Supports pagination, single-column sort, multi-column filtering, and
+// @Description  quicksearch, plus human-friendly aliases for each param.
+// @Tags         loads
+// @Produce      json
+// @Param        startRow    query int    false "First row index (inclusive); alias: offset"
+// @Param        endRow      query int    false "Row index one past the last requested (exclusive); alias: limit"
+// @Param        quickSearch query string false "Substring match across every field; alias: q"
+// @Param        sortModel   query string false "JSON-encoded [{colId,sort}]; alias: sortBy/sortDir"
+// @Param        filterModel query string false "JSON-encoded AG Grid simple filter model (text/number/date/set)"
+// @Success      200 {object} loads.ListResponse
+// @Failure      400 {object} loads.ErrorResponse
+// @Router       /loads [get]
 func ListHandler(service *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -80,10 +97,10 @@ func ListHandler(service *Service) http.HandlerFunc {
 
 		pageSize := req.EndRow - req.StartRow
 		hasNext := int64(req.EndRow) < filteredRows
-		writeJSON(w, http.StatusOK, queryResponse{
+		writeJSON(w, http.StatusOK, ListResponse{
 			RequestURL: requestedURL(r),
 			Query:      echoQuery(req),
-			Meta: queryMeta{
+			Meta: ListMeta{
 				NumResults:     filteredRows,
 				NumTotal:       totalRows,
 				PageSize:       pageSize,
@@ -171,7 +188,7 @@ func nextPageURL(r *http.Request, req QueryRequest, hasNext bool) *string {
 	return &full
 }
 
-func echoQuery(req QueryRequest) queryEcho {
+func echoQuery(req QueryRequest) QueryEcho {
 	sortModel := []SortModelEntry{}
 	if req.Sort != nil {
 		sortModel = append(sortModel, *req.Sort)
@@ -180,7 +197,7 @@ func echoQuery(req QueryRequest) queryEcho {
 	if filterModel == nil {
 		filterModel = map[string]FilterModelEntry{}
 	}
-	return queryEcho{
+	return QueryEcho{
 		StartRow:    req.StartRow,
 		EndRow:      req.EndRow,
 		QuickSearch: req.QuickSearch,
@@ -196,5 +213,5 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 }
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, errorResponse{Error: errorBody{Code: code, Message: message}})
+	writeJSON(w, status, ErrorResponse{Error: ErrorBody{Code: code, Message: message}})
 }
