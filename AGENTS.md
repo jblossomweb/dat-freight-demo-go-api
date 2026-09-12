@@ -72,6 +72,14 @@ tests, vet, builds, seeding, and Docker commands. Added native Git hooks under
 tests, and generated-doc checks as separate jobs. README documents the setup
 and Node.js-to-Go workflow parallels.
 
+**Phase 11 (done):** Added a `make coverage` target for HTML Go coverage
+reports and ignored the generated `coverage.out` profile. Added dependency
+injection interfaces at the repository, service, and health Mongo ping
+boundaries so unit tests can use handwritten fakes without MongoDB. Added
+unit coverage for query parsing, Mongo filter construction, HTTP handlers,
+service behavior, and health responses. Repository integration tests remain
+deferred to a separate follow-up commit.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

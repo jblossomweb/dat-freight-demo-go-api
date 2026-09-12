@@ -1,15 +1,39 @@
 package loads
 
-import "context"
+import (
+	"context"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+)
+
+// LoadRepository is the persistence boundary used by Service.
+//
+// The concrete Repository satisfies this interface; tests can provide a fake
+// without connecting to MongoDB.
+type LoadRepository interface {
+	CountAll(context.Context) (int64, error)
+	CountMatching(context.Context, bson.M) (int64, error)
+	Find(context.Context, bson.M, *SortModelEntry, int, int) ([]Load, error)
+	FindByID(context.Context, string) (Load, error)
+}
+
+// LoadService is the application boundary used by HTTP handlers.
+//
+// The concrete Service satisfies this interface; tests can provide a small
+// fake without connecting to MongoDB.
+type LoadService interface {
+	ListLoads(context.Context, QueryRequest) ([]Load, int64, int64, error)
+	GetLoad(context.Context, string) (Load, error)
+}
 
 // Service contains the business logic for listing and looking up loads,
 // independent of HTTP transport.
 type Service struct {
-	repo *Repository
+	repo LoadRepository
 }
 
 // NewService returns a Service backed by the given repository.
-func NewService(repo *Repository) *Service {
+func NewService(repo LoadRepository) *Service {
 	return &Service{repo: repo}
 }
 

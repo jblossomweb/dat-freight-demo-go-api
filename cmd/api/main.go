@@ -14,29 +14,20 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"dat-freight-demo-api/internal/api/health"
-	"dat-freight-demo-api/internal/api/loads"
 	"dat-freight-demo-api/internal/db"
-
-	_ "dat-freight-demo-api/internal/api/docs"
-
-	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 func main() {
-	port := getEnv("PORT", "8080")
-	mongoURI := getEnv("MONGO_URI", "mongodb://localhost:27017")
-	dbName := getEnv("MONGO_DB_NAME", "freight")
+	cfg := loadConfig()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	client, err := db.Connect(ctx, mongoURI)
+	client, err := db.Connect(ctx, cfg.mongoURI)
 	if err != nil {
 		log.Fatalf("failed to connect to mongo at startup: %v", err)
 	}
@@ -48,20 +39,11 @@ func main() {
 		}
 	}()
 
-	mux := http.NewServeMux()
-	health.RegisterRoutes(mux, client)
-	loadsRepo := loads.NewRepository(client.Database(dbName).Collection("loads"))
-	loadsService := loads.NewService(loadsRepo)
-	loads.RegisterRoutes(mux, loadsService)
-	mux.Handle("/swagger/", httpSwagger.WrapHandler)
-
-	srv := &http.Server{
-		Addr:    ":" + port,
-		Handler: mux,
-	}
+	srv := newServer(client, cfg.dbName)
+	srv.Addr = ":" + cfg.port
 
 	go func() {
-		log.Printf("listening on :%s", port)
+		log.Printf("listening on :%s", cfg.port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
@@ -75,11 +57,4 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("error during server shutdown: %v", err)
 	}
-}
-
-func getEnv(key, fallback string) string {
-	if v, ok := os.LookupEnv(key); ok && v != "" {
-		return v
-	}
-	return fallback
 }

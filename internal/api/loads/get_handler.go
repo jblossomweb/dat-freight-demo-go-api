@@ -34,7 +34,7 @@ type GetMeta struct {
 // @Failure      404 {object} loads.ErrorResponse "no load found"
 // @Router       /load/{id} [get]
 // @Router       /load [get]
-func GetHandler(service *Service) http.HandlerFunc {
+func GetHandler(service LoadService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 

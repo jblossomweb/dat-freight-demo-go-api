@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // pingTimeout bounds how long the Mongo ping may take per request.
 const pingTimeout = 3 * time.Second
+
+// MongoPinger is the small MongoDB boundary needed by the health handler.
+type MongoPinger interface {
+	Ping(context.Context) error
+}
 
 // Response is the GET /health payload.
 type Response struct {
@@ -36,7 +39,7 @@ type UnavailableResponse struct {
 // @Success      200 {object} health.Response
 // @Failure      503 {object} health.UnavailableResponse
 // @Router       /health [get]
-func Handler(client *mongo.Client) http.HandlerFunc {
+func Handler(client MongoPinger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pingCtx, cancel := context.WithTimeout(r.Context(), pingTimeout)
 		defer cancel()
@@ -44,7 +47,7 @@ func Handler(client *mongo.Client) http.HandlerFunc {
 		resp := Response{Status: "ok", Mongo: "ok"}
 		code := http.StatusOK
 
-		if err := client.Ping(pingCtx, nil); err != nil {
+		if err := client.Ping(pingCtx); err != nil {
 			resp.Status = "degraded"
 			resp.Mongo = "unreachable"
 			code = http.StatusServiceUnavailable

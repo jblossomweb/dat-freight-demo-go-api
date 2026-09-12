@@ -8,7 +8,7 @@ DOCS_DIR := internal/api/docs
 MONGO_URI ?= mongodb://localhost:27017
 MONGO_DB_NAME ?= freight
 
-.PHONY: help setup deps tools tidy build test vet staticcheck docs docs-check setup-hooks run seed docker-up docker-down docker-logs
+.PHONY: help setup deps tools tidy build test coverage vet staticcheck docs docs-check setup-hooks run seed docker-up docker-down docker-logs
 
 help:
 	@printf "Available targets:\n"
@@ -18,6 +18,7 @@ help:
 	@printf "  make tidy          Add missing and remove unused dependencies\n"
 	@printf "  make build         Build all Go packages\n"
 	@printf "  make test          Run Go tests\n"
+	@printf "  make coverage      Generate and open an HTML coverage report\n"
 	@printf "  make vet           Run go vet\n"
 	@printf "  make staticcheck   Run Staticcheck\n"
 	@printf "  make docs          Regenerate Swagger documentation\n"
@@ -45,6 +46,11 @@ build:
 
 test:
 	$(GO) test ./...
+
+coverage:
+	$(GO) test -coverprofile=coverage.out ./...
+	$(GO) tool cover -func=coverage.out
+	$(GO) tool cover -html=coverage.out
 
 vet:
 	$(GO) vet ./...

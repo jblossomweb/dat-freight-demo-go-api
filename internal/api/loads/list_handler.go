@@ -70,7 +70,7 @@ type ErrorBody struct {
 // @Success      200 {object} loads.ListResponse
 // @Failure      400 {object} loads.ErrorResponse
 // @Router       /loads [get]
-func ListHandler(service *Service) http.HandlerFunc {
+func ListHandler(service LoadService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
