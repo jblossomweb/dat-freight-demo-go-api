@@ -15,7 +15,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-const batchSize = 1000
+const (
+	batchSize   = 1000
+	seedTimeout = 10 * time.Minute
+)
 
 type seedFile struct {
 	Loads []bson.M `json:"loads"`
@@ -27,7 +30,7 @@ func main() {
 		log.Fatalf("invalid configuration: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), seedTimeout)
 	defer cancel()
 
 	client, err := db.Connect(ctx, cfg.mongoURI)
