@@ -117,6 +117,22 @@ URIs, and intentionally unauthenticated demo Swagger documentation.
 `dat-freight-demo-api` to `dat-freight-demo-go-api`, updating internal imports,
 Swagger metadata, and generated documentation.
 
+**Phase 18 (done):** Added a production-style EC2 deployment flow using a
+GitHub Actions workflow that validates the code, builds a container image, pushes
+it to GHCR, and uses AWS Systems Manager to run the deploy script on the EC2
+instance without requiring SSH access. Provisioning included: creating an EC2
+instance with the SSM agent enabled and the `AmazonSSMManagedInstanceCore`
+role attached; setting up a GitHub Actions IAM user with programmatic access and
+a least-privilege SSM policy; creating GitHub repository secrets for AWS access,
+AWS region, EC2 instance ID, GHCR pull credentials, and MongoDB connection
+settings; and moving the database to MongoDB Atlas with a cluster, database user,
+private/public access configuration, network access rules, and a runtime
+`MONGO_URI` stored in GitHub secrets. The app container is configured to listen
+on port 8080 and is launched with `PORT`, `MONGO_URI`, and `MONGO_DB_NAME`
+variables, allowing the same image to serve both local Docker runs and the EC2
+deployment while keeping the repository deployment workflow and runtime
+configuration separated.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
