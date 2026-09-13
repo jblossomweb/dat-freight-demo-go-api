@@ -182,6 +182,32 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/loads/stats": {
+            "get": {
+                "description": "Returns fixed equipment type and status counts across all loads.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "loads"
+                ],
+                "summary": "Get full-dataset freight load statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/loads.StatsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/loads.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -380,6 +406,23 @@ const docTemplate = `{
                 }
             }
         },
+        "loads.LoadStats": {
+            "type": "object",
+            "properties": {
+                "equipmentType": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loads.StatCount"
+                    }
+                },
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/loads.StatCount"
+                    }
+                }
+            }
+        },
         "loads.QueryEcho": {
             "type": "object",
             "properties": {
@@ -415,6 +458,53 @@ const docTemplate = `{
                 "sort": {
                     "description": "\"asc\" or \"desc\"",
                     "type": "string"
+                }
+            }
+        },
+        "loads.StatCount": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "integer"
+                }
+            }
+        },
+        "loads.StatsBody": {
+            "type": "object",
+            "properties": {
+                "totals": {
+                    "$ref": "#/definitions/loads.LoadStats"
+                }
+            }
+        },
+        "loads.StatsMeta": {
+            "type": "object",
+            "properties": {
+                "numTotal": {
+                    "type": "integer"
+                },
+                "responseTimeMs": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "loads.StatsResponse": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/loads.StatsMeta"
+                },
+                "requestURL": {
+                    "type": "string"
+                },
+                "stats": {
+                    "$ref": "#/definitions/loads.StatsBody"
                 }
             }
         }

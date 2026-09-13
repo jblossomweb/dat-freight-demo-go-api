@@ -36,6 +36,7 @@ services:
       PORT: ${PORT:-8080}
       MONGO_URI: ${MONGO_URI}
       MONGO_DB_NAME: ${MONGO_DB_NAME:-freight}
+      LOAD_STATS_CACHE_TTL: ${LOAD_STATS_CACHE_TTL:-5m}
     depends_on:
       mongo:
         condition: service_healthy

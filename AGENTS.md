@@ -133,6 +133,16 @@ variables, allowing the same image to serve both local Docker runs and the EC2
 deployment while keeping the repository deployment workflow and runtime
 configuration separated.
 
+**Phase 19 (done):** Added `GET /loads/stats` for the frontend statistics page.
+The endpoint runs a single MongoDB aggregation across the full loads collection
+and returns the total row count plus fixed, ordered counts for the `Flatbed`,
+`Reefer`, and `Van` equipment types and the `Available`, `In Transit`, and
+`Delivered` statuses. Successful aggregate results are cached in memory using
+the configurable `LOAD_STATS_CACHE_TTL` duration (`5m` by default; `0` disables
+caching), while request timing and timestamps remain fresh. Added route,
+handler, service/cache, configuration, and repository integration coverage,
+documented the endpoint in README, and regenerated the committed Swagger spec.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

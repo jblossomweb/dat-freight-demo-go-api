@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"time"
 
 	_ "dat-freight-demo-go-api/internal/api/docs"
 	"dat-freight-demo-go-api/internal/api/health"
@@ -20,13 +21,13 @@ func (p mongoPinger) Ping(ctx context.Context) error {
 	return p.client.Ping(ctx, nil)
 }
 
-func newServer(client *mongo.Client, dbName string) *http.Server {
+func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration) *http.Server {
 	mux := http.NewServeMux()
 
 	health.RegisterRoutes(mux, mongoPinger{client: client})
 
 	loadsRepo := loads.NewRepository(client.Database(dbName).Collection("loads"))
-	loadsService := loads.NewService(loadsRepo)
+	loadsService := loads.NewService(loadsRepo, statsCacheTTL)
 	loads.RegisterRoutes(mux, loadsService)
 
 	mux.Handle("/docs/", httpSwagger.WrapHandler)

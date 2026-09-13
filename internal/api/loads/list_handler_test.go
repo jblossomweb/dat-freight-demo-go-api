@@ -13,6 +13,7 @@ import (
 type fakeLoadService struct {
 	listLoads func(context.Context, QueryRequest) ([]Load, int64, int64, error)
 	getLoad   func(context.Context, string) (Load, error)
+	getStats  func(context.Context) (LoadStats, error)
 }
 
 func (f fakeLoadService) ListLoads(ctx context.Context, req QueryRequest) ([]Load, int64, int64, error) {
@@ -21,6 +22,10 @@ func (f fakeLoadService) ListLoads(ctx context.Context, req QueryRequest) ([]Loa
 
 func (f fakeLoadService) GetLoad(ctx context.Context, id string) (Load, error) {
 	return f.getLoad(ctx, id)
+}
+
+func (f fakeLoadService) GetLoadStats(ctx context.Context) (LoadStats, error) {
+	return f.getStats(ctx)
 }
 
 func TestListHandler(t *testing.T) {

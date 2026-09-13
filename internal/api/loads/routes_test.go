@@ -16,6 +16,9 @@ func TestRegisterRoutes(t *testing.T) {
 		getLoad: func(context.Context, string) (Load, error) {
 			return Load{ID: "LD-000001"}, nil
 		},
+		getStats: func(context.Context) (LoadStats, error) {
+			return LoadStats{}, nil
+		},
 	}
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, service)
@@ -26,6 +29,7 @@ func TestRegisterRoutes(t *testing.T) {
 		want int
 	}{
 		{name: "list route", path: "/loads", want: http.StatusOK},
+		{name: "stats route", path: "/loads/stats", want: http.StatusOK},
 		{name: "load query route", path: "/load?id=LD-000001", want: http.StatusOK},
 		{name: "load path route", path: "/load/LD-000001", want: http.StatusOK},
 	}
@@ -51,9 +55,13 @@ func TestRegisterRoutesRejectsUnsupportedMethods(t *testing.T) {
 		},
 	})
 
-	recorder := httptest.NewRecorder()
-	mux.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/loads", nil))
-	if recorder.Code != http.StatusMethodNotAllowed {
-		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
+	for _, path := range []string{"/loads", "/loads/stats"} {
+		t.Run(path, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			mux.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, path, nil))
+			if recorder.Code != http.StatusMethodNotAllowed {
+				t.Fatalf("status = %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
+			}
+		})
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -41,9 +42,10 @@ func TestRepositoryIntegration(t *testing.T) {
 	defer client.Database(databaseName).Drop(context.Background())
 
 	fixtures := []any{
-		bson.M{"id": "LD-000001", "companyName": "Alpha Freight", "price": 3000.0, "status": "Available"},
-		bson.M{"id": "LD-000002", "companyName": "Bravo Freight", "price": 1000.0, "status": "Booked"},
-		bson.M{"id": "LD-000003", "companyName": "Charlie Freight", "price": 2000.0, "status": "Available"},
+		bson.M{"id": "LD-000001", "companyName": "Alpha Freight", "equipmentType": "Flatbed", "price": 3000.0, "status": "Available"},
+		bson.M{"id": "LD-000002", "companyName": "Bravo Freight", "equipmentType": "Reefer", "price": 1000.0, "status": "In Transit"},
+		bson.M{"id": "LD-000003", "companyName": "Charlie Freight", "equipmentType": "Van", "price": 2000.0, "status": "Delivered"},
+		bson.M{"id": "LD-000004", "companyName": "Delta Freight", "equipmentType": "Other", "price": 2500.0, "status": "Booked"},
 	}
 	if _, err := collection.InsertMany(ctx, fixtures); err != nil {
 		t.Fatalf("insert fixtures: %v", err)
@@ -66,8 +68,39 @@ func TestRepositoryIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CountMatching() error = %v", err)
 		}
-		if count != 2 {
-			t.Fatalf("CountMatching() = %d, want 2", count)
+		if count != 1 {
+			t.Fatalf("CountMatching() = %d, want 1", count)
+		}
+	})
+
+	t.Run("GetStats", func(t *testing.T) {
+		stats, err := repository.GetStats(ctx)
+		if err != nil {
+			t.Fatalf("GetStats() error = %v", err)
+		}
+		if stats.NumTotal != 4 {
+			t.Fatalf("GetStats().NumTotal = %d, want 4", stats.NumTotal)
+		}
+		wantEquipment := []StatCount{{Label: "Flatbed", Value: 1}, {Label: "Reefer", Value: 1}, {Label: "Van", Value: 1}}
+		wantStatus := []StatCount{{Label: "Available", Value: 1}, {Label: "In Transit", Value: 1}, {Label: "Delivered", Value: 1}}
+		if !reflect.DeepEqual(stats.EquipmentType, wantEquipment) || !reflect.DeepEqual(stats.Status, wantStatus) {
+			t.Fatalf("GetStats() = %#v, want equipment %#v and status %#v", stats, wantEquipment, wantStatus)
+		}
+	})
+
+	t.Run("GetStats empty collection", func(t *testing.T) {
+		emptyRepository := NewRepository(client.Database(databaseName).Collection("empty_loads"))
+		stats, err := emptyRepository.GetStats(ctx)
+		if err != nil {
+			t.Fatalf("GetStats() error = %v", err)
+		}
+		if stats.NumTotal != 0 {
+			t.Fatalf("GetStats().NumTotal = %d, want 0", stats.NumTotal)
+		}
+		wantEquipment := []StatCount{{Label: "Flatbed", Value: 0}, {Label: "Reefer", Value: 0}, {Label: "Van", Value: 0}}
+		wantStatus := []StatCount{{Label: "Available", Value: 0}, {Label: "In Transit", Value: 0}, {Label: "Delivered", Value: 0}}
+		if !reflect.DeepEqual(stats.EquipmentType, wantEquipment) || !reflect.DeepEqual(stats.Status, wantStatus) {
+			t.Fatalf("GetStats() = %#v, want zero-filled fixed categories", stats)
 		}
 	})
 

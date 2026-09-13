@@ -193,7 +193,7 @@ cmd/seed/main.go       - loads seed data into MongoDB
 Makefile               - common build, test, docs, and Docker commands
 internal/api/docs      - generated Swagger/OpenAPI spec (swag init output, committed)
 internal/api/health    - GET /health route + handler
-internal/api/loads     - routes.go, GET /loads and GET /load handlers, service.go, repository.go
+internal/api/loads     - routes, GET /loads, GET /loads/stats, and GET /load handlers, service, repository
 internal/db            - MongoDB client setup (shared by cmd/api and cmd/seed)
 internal/db/seeds      - seed data (loads.json)
 Dockerfile             - multi-stage build for the api service
@@ -202,11 +202,12 @@ compose.yml            - api + mongo services
 
 ## Environment variables
 
-| Var           | Default  | Description               |
-| ------------- | -------- | ------------------------- |
-| PORT          | 8080     | HTTP listen port          |
-| MONGO_URI     | required | MongoDB connection string |
-| MONGO_DB_NAME | freight  | Target database name      |
+| Var                  | Default  | Description                                |
+| -------------------- | -------- | ------------------------------------------ |
+| PORT                 | 8080     | HTTP listen port                           |
+| MONGO_URI            | required | MongoDB connection string                  |
+| MONGO_DB_NAME        | freight  | Target database name                       |
+| LOAD_STATS_CACHE_TTL | 5m       | Stats cache duration; `0` disables caching |
 
 `MONGO_URI` is read directly from the environment by both `cmd/api` and
 `cmd/seed` (and passed through by `compose.yml` from `.env`), so pointing at a
@@ -296,6 +297,44 @@ used when a param was omitted from the request.
 ```json
 { "error": { "code": "LOAD_QUERY_FAILED", "message": "..." } }
 ```
+
+## GET /loads/stats
+
+Returns aggregate counts across the full loads collection. Filtering,
+quicksearch, sorting, and pagination parameters do not apply to this endpoint.
+
+```json
+{
+  "requestURL": "/loads/stats",
+  "meta": {
+    "numTotal": 100000,
+    "responseTimeMs": 68,
+    "timestamp": "2026-09-13T07:40:43.281552398Z"
+  },
+  "stats": {
+    "totals": {
+      "equipmentType": [
+        { "label": "Flatbed", "value": 33334 },
+        { "label": "Reefer", "value": 33333 },
+        { "label": "Van", "value": 33333 }
+      ],
+      "status": [
+        { "label": "Available", "value": 33334 },
+        { "label": "In Transit", "value": 33333 },
+        { "label": "Delivered", "value": 33333 }
+      ]
+    }
+  }
+}
+```
+
+The category labels and ordering are stable; a category with no matching loads
+has a value of zero. Unexpected category values remain part of `meta.numTotal`
+but are not added to the category arrays.
+
+Successful aggregate results are cached in each API process for
+`LOAD_STATS_CACHE_TTL` (default `5m`). Request timing and timestamp metadata are
+generated fresh for every response. Set the TTL to `0` to disable caching.
 
 ## GET /load/{id} and GET /load?id={id}
 

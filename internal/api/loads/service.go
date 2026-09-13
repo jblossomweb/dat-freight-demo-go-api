@@ -2,6 +2,8 @@ package loads
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -15,6 +17,7 @@ type LoadRepository interface {
 	CountMatching(context.Context, bson.M) (int64, error)
 	Find(context.Context, bson.M, *SortModelEntry, int, int) ([]Load, error)
 	FindByID(context.Context, string) (Load, error)
+	GetStats(context.Context) (LoadStats, error)
 }
 
 // LoadService is the application boundary used by HTTP handlers.
@@ -24,17 +27,27 @@ type LoadRepository interface {
 type LoadService interface {
 	ListLoads(context.Context, QueryRequest) ([]Load, int64, int64, error)
 	GetLoad(context.Context, string) (Load, error)
+	GetLoadStats(context.Context) (LoadStats, error)
 }
 
 // Service contains the business logic for listing and looking up loads,
 // independent of HTTP transport.
 type Service struct {
-	repo LoadRepository
+	repo          LoadRepository
+	statsCacheTTL time.Duration
+	statsMu       sync.Mutex
+	cachedStats   LoadStats
+	statsCachedAt time.Time
+	now           func() time.Time
 }
 
 // NewService returns a Service backed by the given repository.
-func NewService(repo LoadRepository) *Service {
-	return &Service{repo: repo}
+func NewService(repo LoadRepository, statsCacheTTL time.Duration) *Service {
+	return &Service{
+		repo:          repo,
+		statsCacheTTL: statsCacheTTL,
+		now:           time.Now,
+	}
 }
 
 // InvalidQueryError marks an error as caused by the caller's request (bad
@@ -42,7 +55,7 @@ func NewService(repo LoadRepository) *Service {
 type InvalidQueryError struct{ err error }
 
 func (e *InvalidQueryError) Error() string { return e.err.Error() }
-func (e *InvalidQueryError) Unwrap() error  { return e.err }
+func (e *InvalidQueryError) Unwrap() error { return e.err }
 
 // ListLoads builds the Mongo filter for req and returns the matching page of
 // loads alongside the total collection size and the filtered match count.
@@ -75,4 +88,33 @@ func (s *Service) ListLoads(ctx context.Context, req QueryRequest) (rows []Load,
 // GetLoad returns the load with the given id, or ErrNotFound if none matches.
 func (s *Service) GetLoad(ctx context.Context, id string) (Load, error) {
 	return s.repo.FindByID(ctx, id)
+}
+
+// GetLoadStats returns full-dataset statistics, using the configured cache TTL.
+func (s *Service) GetLoadStats(ctx context.Context) (LoadStats, error) {
+	if s.statsCacheTTL <= 0 {
+		return s.repo.GetStats(ctx)
+	}
+
+	s.statsMu.Lock()
+	defer s.statsMu.Unlock()
+
+	now := s.now()
+	if !s.statsCachedAt.IsZero() && now.Sub(s.statsCachedAt) < s.statsCacheTTL {
+		return cloneLoadStats(s.cachedStats), nil
+	}
+
+	stats, err := s.repo.GetStats(ctx)
+	if err != nil {
+		return LoadStats{}, err
+	}
+	s.cachedStats = cloneLoadStats(stats)
+	s.statsCachedAt = now
+	return cloneLoadStats(stats), nil
+}
+
+func cloneLoadStats(stats LoadStats) LoadStats {
+	stats.EquipmentType = append([]StatCount(nil), stats.EquipmentType...)
+	stats.Status = append([]StatCount(nil), stats.Status...)
+	return stats
 }

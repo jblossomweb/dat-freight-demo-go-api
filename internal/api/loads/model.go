@@ -15,6 +15,19 @@ type Load struct {
 	Status        string  `bson:"status" json:"status"`
 }
 
+// StatCount is a labeled aggregate count.
+type StatCount struct {
+	Label string `json:"label"`
+	Value int64  `json:"value"`
+}
+
+// LoadStats contains full-dataset load counts.
+type LoadStats struct {
+	NumTotal      int64       `json:"-"`
+	EquipmentType []StatCount `json:"equipmentType"`
+	Status        []StatCount `json:"status"`
+}
+
 // stringFields lists the string-typed columns quicksearch matches directly via regex.
 // Matches the client's AG Grid quick filter, which searches every column by default.
 var stringFields = []string{"id", "companyName", "origin", "destination", "equipmentType", "date", "status"}

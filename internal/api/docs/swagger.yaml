@@ -134,6 +134,17 @@ definitions:
       weight:
         type: number
     type: object
+  loads.LoadStats:
+    properties:
+      equipmentType:
+        items:
+          $ref: '#/definitions/loads.StatCount'
+        type: array
+      status:
+        items:
+          $ref: '#/definitions/loads.StatCount'
+        type: array
+    type: object
   loads.QueryEcho:
     properties:
       endRow:
@@ -158,6 +169,36 @@ definitions:
       sort:
         description: '"asc" or "desc"'
         type: string
+    type: object
+  loads.StatCount:
+    properties:
+      label:
+        type: string
+      value:
+        type: integer
+    type: object
+  loads.StatsBody:
+    properties:
+      totals:
+        $ref: '#/definitions/loads.LoadStats'
+    type: object
+  loads.StatsMeta:
+    properties:
+      numTotal:
+        type: integer
+      responseTimeMs:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  loads.StatsResponse:
+    properties:
+      meta:
+        $ref: '#/definitions/loads.StatsMeta'
+      requestURL:
+        type: string
+      stats:
+        $ref: '#/definitions/loads.StatsBody'
     type: object
 host: localhost:8080
 info:
@@ -280,6 +321,23 @@ paths:
           schema:
             $ref: '#/definitions/loads.ErrorResponse'
       summary: Query freight loads (AG Grid server-side row model contract)
+      tags:
+      - loads
+  /loads/stats:
+    get:
+      description: Returns fixed equipment type and status counts across all loads.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/loads.StatsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/loads.ErrorResponse'
+      summary: Get full-dataset freight load statistics
       tags:
       - loads
 swagger: "2.0"

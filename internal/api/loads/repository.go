@@ -65,3 +65,63 @@ func (r *Repository) FindByID(ctx context.Context, id string) (Load, error) {
 	}
 	return load, err
 }
+
+// GetStats returns full-collection counts for the fixed dashboard categories.
+func (r *Repository) GetStats(ctx context.Context) (LoadStats, error) {
+	pipeline := mongo.Pipeline{bson.D{{Key: "$group", Value: bson.D{
+		{Key: "_id", Value: nil},
+		{Key: "numTotal", Value: bson.D{{Key: "$sum", Value: 1}}},
+		{Key: "flatbed", Value: conditionalCount("equipmentType", "Flatbed")},
+		{Key: "reefer", Value: conditionalCount("equipmentType", "Reefer")},
+		{Key: "van", Value: conditionalCount("equipmentType", "Van")},
+		{Key: "available", Value: conditionalCount("status", "Available")},
+		{Key: "inTransit", Value: conditionalCount("status", "In Transit")},
+		{Key: "delivered", Value: conditionalCount("status", "Delivered")},
+	}}}}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return LoadStats{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var result struct {
+		NumTotal  int64 `bson:"numTotal"`
+		Flatbed   int64 `bson:"flatbed"`
+		Reefer    int64 `bson:"reefer"`
+		Van       int64 `bson:"van"`
+		Available int64 `bson:"available"`
+		InTransit int64 `bson:"inTransit"`
+		Delivered int64 `bson:"delivered"`
+	}
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&result); err != nil {
+			return LoadStats{}, err
+		}
+	}
+	if err := cursor.Err(); err != nil {
+		return LoadStats{}, err
+	}
+
+	return LoadStats{
+		NumTotal: result.NumTotal,
+		EquipmentType: []StatCount{
+			{Label: "Flatbed", Value: result.Flatbed},
+			{Label: "Reefer", Value: result.Reefer},
+			{Label: "Van", Value: result.Van},
+		},
+		Status: []StatCount{
+			{Label: "Available", Value: result.Available},
+			{Label: "In Transit", Value: result.InTransit},
+			{Label: "Delivered", Value: result.Delivered},
+		},
+	}, nil
+}
+
+func conditionalCount(field, value string) bson.D {
+	return bson.D{{Key: "$sum", Value: bson.D{{Key: "$cond", Value: bson.A{
+		bson.D{{Key: "$eq", Value: bson.A{"$" + field, value}}},
+		1,
+		0,
+	}}}}}
+}

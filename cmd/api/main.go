@@ -42,7 +42,7 @@ func main() {
 		}
 	}()
 
-	srv := newServer(client, cfg.dbName)
+	srv := newServer(client, cfg.dbName, cfg.statsCacheTTL)
 	srv.Addr = ":" + cfg.port
 
 	go func() {
