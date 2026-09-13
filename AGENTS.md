@@ -113,6 +113,10 @@ preventing Make from echoing Mongo connection strings. Improved README guidance
 for development seeding, isolated local/CI integration tests, required test
 URIs, and intentionally unauthenticated demo Swagger documentation.
 
+**Phase 17 (done):** Renamed the Go module and project identity from
+`dat-freight-demo-api` to `dat-freight-demo-go-api`, updating internal imports,
+Swagger metadata, and generated documentation.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
@@ -138,7 +142,7 @@ URIs, and intentionally unauthenticated demo Swagger documentation.
 
 ## Conventions
 
-- Module name is `dat-freight-demo-api` — matches the repo root folder name.
+- Module name is `dat-freight-demo-go-api` — matches the intended repo name.
 - Prefer the standard library over third-party dependencies unless there's a
   concrete need (e.g. the Mongo driver).
 - Server must fail fast (non-zero exit) if MongoDB is unreachable at startup.

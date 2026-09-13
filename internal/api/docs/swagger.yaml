@@ -167,7 +167,7 @@ info:
     Implements the AG Grid server-side row model contract
     (pagination, sort, filter, quicksearch) for freight loads,
     plus a single-load lookup endpoint.
-  title: dat-freight-demo-api
+  title: dat-freight-demo-go-api
   version: "1.0"
 paths:
   /health:

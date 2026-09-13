@@ -2,7 +2,7 @@
     "swagger": "2.0",
     "info": {
         "description": "REST API backing the DAT freight demo SPA (AG Grid frontend).\nImplements the AG Grid server-side row model contract\n(pagination, sort, filter, quicksearch) for freight loads,\nplus a single-load lookup endpoint.",
-        "title": "dat-freight-demo-api",
+        "title": "dat-freight-demo-go-api",
         "contact": {},
         "version": "1.0"
     },

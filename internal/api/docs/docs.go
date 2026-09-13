@@ -427,7 +427,7 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "dat-freight-demo-api",
+	Title:            "dat-freight-demo-go-api",
 	Description:      "REST API backing the DAT freight demo SPA (AG Grid frontend).\nImplements the AG Grid server-side row model contract\n(pagination, sort, filter, quicksearch) for freight loads,\nplus a single-load lookup endpoint.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,

@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	_ "dat-freight-demo-api/internal/api/docs"
-	"dat-freight-demo-api/internal/api/health"
-	"dat-freight-demo-api/internal/api/loads"
+	_ "dat-freight-demo-go-api/internal/api/docs"
+	"dat-freight-demo-go-api/internal/api/health"
+	"dat-freight-demo-go-api/internal/api/loads"
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.mongodb.org/mongo-driver/v2/mongo"

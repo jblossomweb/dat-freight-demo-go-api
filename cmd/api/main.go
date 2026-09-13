@@ -1,6 +1,6 @@
 // Command api runs the freight demo HTTP server.
 //
-// @title        dat-freight-demo-api
+// @title        dat-freight-demo-go-api
 // @version      1.0
 // @description  REST API backing the DAT freight demo SPA (AG Grid frontend).
 // @description  Implements the AG Grid server-side row model contract
@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"dat-freight-demo-api/internal/db"
+	"dat-freight-demo-go-api/internal/db"
 )
 
 func main() {

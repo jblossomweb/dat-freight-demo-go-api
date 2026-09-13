@@ -1,7 +1,7 @@
 package main
 
 import (
-	"dat-freight-demo-api/internal/env"
+	"dat-freight-demo-go-api/internal/env"
 )
 
 type config struct {

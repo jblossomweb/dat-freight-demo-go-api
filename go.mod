@@ -1,4 +1,4 @@
-module dat-freight-demo-api
+module dat-freight-demo-go-api
 
 go 1.27.1
 
