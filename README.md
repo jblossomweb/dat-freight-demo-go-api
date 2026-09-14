@@ -39,6 +39,18 @@ In a second terminal, seed the local dev database:
 MONGO_URI=mongodb://localhost:27017 make seed
 ```
 
+# Sample Deployment
+
+I have set up pipelines to deploy this API to the following URL:
+
+http://ec2-35-94-240-99.us-west-2.compute.amazonaws.com/
+
+Optional: you can point a local dev frontend at production or the local Docker stack via its env vars.
+
+(see [dat-freight-demo](https://github.com/jblossomweb/dat-freight-demo))
+
+Note: I have yet to setup https on this deployment, so it is only accessible via http for now.
+
 # Developer Workflow
 
 > Whenever you change Go code, re-run `make docker-up` — the binary is compiled
