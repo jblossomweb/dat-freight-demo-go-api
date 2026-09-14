@@ -117,6 +117,13 @@ func TestRepositoryIntegration(t *testing.T) {
 			wantStatus: []StatCount{{Label: "Available"}, {Label: "In Transit"}, {Label: "Delivered"}},
 		},
 		{
+			name:       "multiple terms use OR",
+			term:       "Alpha Bravo",
+			wantResult: 2,
+			wantEquip:  []StatCount{{Label: "Flatbed", Value: 1}, {Label: "Reefer", Value: 1}, {Label: "Van"}},
+			wantStatus: []StatCount{{Label: "Available", Value: 1}, {Label: "In Transit", Value: 1}, {Label: "Delivered"}},
+		},
+		{
 			name:       "no match",
 			term:       "missing",
 			wantResult: 0,

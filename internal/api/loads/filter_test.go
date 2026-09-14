@@ -207,23 +207,26 @@ func TestBuildSetFilter(t *testing.T) {
 }
 
 func TestBuildQuickSearch(t *testing.T) {
-	got := buildQuickSearch("A+B")
+	got := buildQuickSearch("  A+B\tC.D  ")
 	or, ok := got["$or"].([]bson.M)
 	if !ok {
 		t.Fatalf("$or = %#v, want []bson.M", got["$or"])
 	}
-	if len(or) != len(stringFields)+len(numberFields) {
-		t.Fatalf("len($or) = %d, want %d", len(or), len(stringFields)+len(numberFields))
+	wantAlternatives := 2 * (len(stringFields) + len(numberFields))
+	if len(or) != wantAlternatives {
+		t.Fatalf("len($or) = %d, want %d", len(or), wantAlternatives)
 	}
 
-	for _, field := range stringFields {
-		if !containsBSONRegex(or, field, bson.Regex{Pattern: "A\\+B", Options: "i"}) {
-			t.Errorf("quicksearch missing string regex for %q", field)
+	for _, pattern := range []string{"A\\+B", "C\\.D"} {
+		for _, field := range stringFields {
+			if !containsBSONRegex(or, field, bson.Regex{Pattern: pattern, Options: "i"}) {
+				t.Errorf("quicksearch missing string regex %q for %q", pattern, field)
+			}
 		}
-	}
-	for field := range numberFields {
-		if !containsNumericSearch(or, field, "A\\+B") {
-			t.Errorf("quicksearch missing numeric expression for %q", field)
+		for field := range numberFields {
+			if !containsNumericSearch(or, field, pattern) {
+				t.Errorf("quicksearch missing numeric expression %q for %q", pattern, field)
+			}
 		}
 	}
 }

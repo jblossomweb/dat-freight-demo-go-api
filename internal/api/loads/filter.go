@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"encoding/json"
 
@@ -33,27 +34,29 @@ func BuildMongoFilter(req QueryRequest) (bson.M, error) {
 }
 
 // buildQuickSearch matches the client's AG Grid quick filter, which searches every
-// column by default. String columns get a direct regex match; numeric columns
-// (stored as BSON numbers) are matched via $expr/$toString since Mongo regex only
-// applies to strings.
+// column for any whitespace-delimited term. String columns get a direct regex
+// match; numeric columns (stored as BSON numbers) are matched via $expr/$toString
+// since Mongo regex only applies to strings.
 func buildQuickSearch(term string) bson.M {
-	escaped := regexp.QuoteMeta(term)
-	pattern := bson.Regex{Pattern: escaped, Options: "i"}
-
-	or := make([]bson.M, 0, len(stringFields)+len(numberFields))
-	for _, field := range stringFields {
-		or = append(or, bson.M{field: pattern})
-	}
-	for field := range numberFields {
-		or = append(or, bson.M{
-			"$expr": bson.M{
-				"$regexMatch": bson.M{
-					"input":   bson.M{"$toString": "$" + field},
-					"regex":   escaped,
-					"options": "i",
+	terms := strings.Fields(term)
+	or := make([]bson.M, 0, len(terms)*(len(stringFields)+len(numberFields)))
+	for _, searchTerm := range terms {
+		escaped := regexp.QuoteMeta(searchTerm)
+		pattern := bson.Regex{Pattern: escaped, Options: "i"}
+		for _, field := range stringFields {
+			or = append(or, bson.M{field: pattern})
+		}
+		for field := range numberFields {
+			or = append(or, bson.M{
+				"$expr": bson.M{
+					"$regexMatch": bson.M{
+						"input":   bson.M{"$toString": "$" + field},
+						"regex":   escaped,
+						"options": "i",
+					},
 				},
-			},
-		})
+			})
+		}
 	}
 	return bson.M{"$or": or}
 }

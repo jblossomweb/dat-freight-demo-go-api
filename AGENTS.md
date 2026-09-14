@@ -171,6 +171,14 @@ values fall back to a meaningful `q` value and equivalent padded searches share
 the same cache entry. Added parser and handler regressions and updated README
 and Swagger docs.
 
+**Phase 23 (done):** Aligned multi-word server-side quick search with the
+client by splitting the effective `quickSearch` or `q` value on whitespace and
+matching when any term appears in any string or numeric load field. Terms remain
+case-insensitive and regex-safe, field-specific filters still combine with the
+overall quick search using AND, and query echoing plus stats cache keys retain
+the normalized original string. Added unit and Mongo integration coverage and
+updated README and Swagger docs.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

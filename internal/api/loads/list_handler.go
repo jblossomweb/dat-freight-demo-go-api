@@ -64,7 +64,7 @@ type ErrorBody struct {
 // @Produce      json
 // @Param        startRow    query int    false "First row index (inclusive); alias: offset"
 // @Param        endRow      query int    false "Row index one past the last requested (exclusive); alias: limit"
-// @Param        quickSearch query string false "Trimmed substring match across every field; alias: q"
+// @Param        quickSearch query string false "Trimmed, space-delimited OR substring match across every field; alias: q"
 // @Param        sortModel   query string false "JSON-encoded [{colId,sort}]; alias: sortBy/sortDir"
 // @Param        filterModel query string false "JSON-encoded AG Grid simple filter model (text/number/date/set)"
 // @Success      200 {object} loads.ListResponse

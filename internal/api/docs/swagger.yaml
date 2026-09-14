@@ -306,7 +306,8 @@ paths:
         in: query
         name: endRow
         type: integer
-      - description: 'Trimmed substring match across every field; alias: q'
+      - description: 'Trimmed, space-delimited OR substring match across every field;
+          alias: q'
         in: query
         name: quickSearch
         type: string
@@ -337,7 +338,8 @@ paths:
       description: Returns fixed equipment type and status counts across all matching
         loads.
       parameters:
-      - description: 'Trimmed substring match across every field; alias: q'
+      - description: 'Trimmed, space-delimited OR substring match across every field;
+          alias: q'
         in: query
         name: quickSearch
         type: string
