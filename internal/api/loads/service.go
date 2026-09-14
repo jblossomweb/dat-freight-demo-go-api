@@ -1,6 +1,7 @@
 package loads
 
 import (
+	"container/list"
 	"context"
 	"sync"
 	"time"
@@ -17,7 +18,7 @@ type LoadRepository interface {
 	CountMatching(context.Context, bson.M) (int64, error)
 	Find(context.Context, bson.M, *SortModelEntry, int, int) ([]Load, error)
 	FindByID(context.Context, string) (Load, error)
-	GetStats(context.Context) (LoadStats, error)
+	GetStats(context.Context, bson.M) (LoadStats, error)
 }
 
 // LoadService is the application boundary used by HTTP handlers.
@@ -27,7 +28,15 @@ type LoadRepository interface {
 type LoadService interface {
 	ListLoads(context.Context, QueryRequest) ([]Load, int64, int64, error)
 	GetLoad(context.Context, string) (Load, error)
-	GetLoadStats(context.Context) (LoadStats, error)
+	GetLoadStats(context.Context, string) (LoadStats, error)
+}
+
+const statsCacheMaxEntries = 50
+
+type statsCacheEntry struct {
+	key      string
+	stats    LoadStats
+	cachedAt time.Time
 }
 
 // Service contains the business logic for listing and looking up loads,
@@ -36,8 +45,8 @@ type Service struct {
 	repo          LoadRepository
 	statsCacheTTL time.Duration
 	statsMu       sync.Mutex
-	cachedStats   LoadStats
-	statsCachedAt time.Time
+	statsCache    map[string]*list.Element
+	statsLRU      *list.List
 	now           func() time.Time
 }
 
@@ -46,6 +55,8 @@ func NewService(repo LoadRepository, statsCacheTTL time.Duration) *Service {
 	return &Service{
 		repo:          repo,
 		statsCacheTTL: statsCacheTTL,
+		statsCache:    make(map[string]*list.Element, statsCacheMaxEntries),
+		statsLRU:      list.New(),
 		now:           time.Now,
 	}
 }
@@ -90,27 +101,44 @@ func (s *Service) GetLoad(ctx context.Context, id string) (Load, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-// GetLoadStats returns full-dataset statistics, using the configured cache TTL.
-func (s *Service) GetLoadStats(ctx context.Context) (LoadStats, error) {
+// GetLoadStats returns full and quick-search-filtered statistics.
+func (s *Service) GetLoadStats(ctx context.Context, quickSearch string) (LoadStats, error) {
+	filter, err := BuildMongoFilter(QueryRequest{QuickSearch: quickSearch})
+	if err != nil {
+		return LoadStats{}, err
+	}
 	if s.statsCacheTTL <= 0 {
-		return s.repo.GetStats(ctx)
+		return s.repo.GetStats(ctx, filter)
 	}
 
 	s.statsMu.Lock()
 	defer s.statsMu.Unlock()
 
 	now := s.now()
-	if !s.statsCachedAt.IsZero() && now.Sub(s.statsCachedAt) < s.statsCacheTTL {
-		return cloneLoadStats(s.cachedStats), nil
+	if element, ok := s.statsCache[quickSearch]; ok {
+		entry := element.Value.(*statsCacheEntry)
+		if now.Sub(entry.cachedAt) < s.statsCacheTTL {
+			s.statsLRU.MoveToFront(element)
+			return cloneLoadStats(entry.stats), nil
+		}
+		s.removeStatsCacheElement(element)
 	}
 
-	stats, err := s.repo.GetStats(ctx)
+	stats, err := s.repo.GetStats(ctx, filter)
 	if err != nil {
 		return LoadStats{}, err
 	}
-	s.cachedStats = cloneLoadStats(stats)
-	s.statsCachedAt = now
+	element := s.statsLRU.PushFront(&statsCacheEntry{key: quickSearch, stats: cloneLoadStats(stats), cachedAt: now})
+	s.statsCache[quickSearch] = element
+	if s.statsLRU.Len() > statsCacheMaxEntries {
+		s.removeStatsCacheElement(s.statsLRU.Back())
+	}
 	return cloneLoadStats(stats), nil
+}
+
+func (s *Service) removeStatsCacheElement(element *list.Element) {
+	delete(s.statsCache, element.Value.(*statsCacheEntry).key)
+	s.statsLRU.Remove(element)
 }
 
 func cloneLoadStats(stats LoadStats) LoadStats {

@@ -74,12 +74,12 @@ func TestRepositoryIntegration(t *testing.T) {
 	})
 
 	t.Run("GetStats", func(t *testing.T) {
-		stats, err := repository.GetStats(ctx)
+		stats, err := repository.GetStats(ctx, bson.M{})
 		if err != nil {
 			t.Fatalf("GetStats() error = %v", err)
 		}
-		if stats.NumTotal != 4 {
-			t.Fatalf("GetStats().NumTotal = %d, want 4", stats.NumTotal)
+		if stats.NumTotal != 4 || stats.NumResults != 4 {
+			t.Fatalf("GetStats() counts = total %d, results %d; want 4, 4", stats.NumTotal, stats.NumResults)
 		}
 		wantEquipment := []StatCount{{Label: "Flatbed", Value: 1}, {Label: "Reefer", Value: 1}, {Label: "Van", Value: 1}}
 		wantStatus := []StatCount{{Label: "Available", Value: 1}, {Label: "In Transit", Value: 1}, {Label: "Delivered", Value: 1}}
@@ -88,14 +88,68 @@ func TestRepositoryIntegration(t *testing.T) {
 		}
 	})
 
+	for _, test := range []struct {
+		name       string
+		term       string
+		wantResult int64
+		wantEquip  []StatCount
+		wantStatus []StatCount
+	}{
+		{
+			name:       "string field",
+			term:       "Alpha",
+			wantResult: 1,
+			wantEquip:  []StatCount{{Label: "Flatbed", Value: 1}, {Label: "Reefer"}, {Label: "Van"}},
+			wantStatus: []StatCount{{Label: "Available", Value: 1}, {Label: "In Transit"}, {Label: "Delivered"}},
+		},
+		{
+			name:       "case insensitive",
+			term:       "bravo",
+			wantResult: 1,
+			wantEquip:  []StatCount{{Label: "Flatbed"}, {Label: "Reefer", Value: 1}, {Label: "Van"}},
+			wantStatus: []StatCount{{Label: "Available"}, {Label: "In Transit", Value: 1}, {Label: "Delivered"}},
+		},
+		{
+			name:       "numeric field",
+			term:       "2500",
+			wantResult: 1,
+			wantEquip:  []StatCount{{Label: "Flatbed"}, {Label: "Reefer"}, {Label: "Van"}},
+			wantStatus: []StatCount{{Label: "Available"}, {Label: "In Transit"}, {Label: "Delivered"}},
+		},
+		{
+			name:       "no match",
+			term:       "missing",
+			wantResult: 0,
+			wantEquip:  []StatCount{{Label: "Flatbed"}, {Label: "Reefer"}, {Label: "Van"}},
+			wantStatus: []StatCount{{Label: "Available"}, {Label: "In Transit"}, {Label: "Delivered"}},
+		},
+	} {
+		t.Run("GetStats filtered "+test.name, func(t *testing.T) {
+			filter, err := BuildMongoFilter(QueryRequest{QuickSearch: test.term})
+			if err != nil {
+				t.Fatalf("BuildMongoFilter() error = %v", err)
+			}
+			stats, err := repository.GetStats(ctx, filter)
+			if err != nil {
+				t.Fatalf("GetStats() error = %v", err)
+			}
+			if stats.NumTotal != 4 || stats.NumResults != test.wantResult {
+				t.Fatalf("GetStats() counts = total %d, results %d; want 4, %d", stats.NumTotal, stats.NumResults, test.wantResult)
+			}
+			if !reflect.DeepEqual(stats.EquipmentType, test.wantEquip) || !reflect.DeepEqual(stats.Status, test.wantStatus) {
+				t.Fatalf("GetStats() = %#v, want equipment %#v and status %#v", stats, test.wantEquip, test.wantStatus)
+			}
+		})
+	}
+
 	t.Run("GetStats empty collection", func(t *testing.T) {
 		emptyRepository := NewRepository(client.Database(databaseName).Collection("empty_loads"))
-		stats, err := emptyRepository.GetStats(ctx)
+		stats, err := emptyRepository.GetStats(ctx, bson.M{})
 		if err != nil {
 			t.Fatalf("GetStats() error = %v", err)
 		}
-		if stats.NumTotal != 0 {
-			t.Fatalf("GetStats().NumTotal = %d, want 0", stats.NumTotal)
+		if stats.NumTotal != 0 || stats.NumResults != 0 {
+			t.Fatalf("GetStats() counts = total %d, results %d; want 0, 0", stats.NumTotal, stats.NumResults)
 		}
 		wantEquipment := []StatCount{{Label: "Flatbed", Value: 0}, {Label: "Reefer", Value: 0}, {Label: "Van", Value: 0}}
 		wantStatus := []StatCount{{Label: "Available", Value: 0}, {Label: "In Transit", Value: 0}, {Label: "Delivered", Value: 0}}

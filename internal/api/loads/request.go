@@ -96,11 +96,7 @@ func ParseQuery(q url.Values) (QueryRequest, error) {
 		req.EndRow = req.StartRow + maxPageSize
 	}
 
-	req.QuickSearch = q.Get("quickSearch")
-	if req.QuickSearch == "" {
-		// q is a shorthand alias for quickSearch; ignored if quickSearch is already set.
-		req.QuickSearch = q.Get("q")
-	}
+	req.QuickSearch = parseQuickSearch(q)
 
 	if v := q.Get("sortModel"); v != "" {
 		var entries []SortModelEntry
@@ -155,6 +151,13 @@ func ParseQuery(q url.Values) (QueryRequest, error) {
 	}
 
 	return req, nil
+}
+
+func parseQuickSearch(q url.Values) string {
+	if quickSearch := q.Get("quickSearch"); quickSearch != "" {
+		return quickSearch
+	}
+	return q.Get("q")
 }
 
 // aliasFilterEntry builds the effective filter for an alias param: a single

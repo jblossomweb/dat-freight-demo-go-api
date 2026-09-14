@@ -185,14 +185,28 @@ const docTemplate = `{
         },
         "/loads/stats": {
             "get": {
-                "description": "Returns fixed equipment type and status counts across all loads.",
+                "description": "Returns fixed equipment type and status counts across all matching loads.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "loads"
                 ],
-                "summary": "Get full-dataset freight load statistics",
+                "summary": "Get freight load statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Substring match across every field; alias: q",
+                        "name": "quickSearch",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Alias for quickSearch; ignored when quickSearch is set",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -483,6 +497,9 @@ const docTemplate = `{
         "loads.StatsMeta": {
             "type": "object",
             "properties": {
+                "numResults": {
+                    "type": "integer"
+                },
                 "numTotal": {
                     "type": "integer"
                 },
@@ -494,11 +511,22 @@ const docTemplate = `{
                 }
             }
         },
+        "loads.StatsQueryEcho": {
+            "type": "object",
+            "properties": {
+                "quickSearch": {
+                    "type": "string"
+                }
+            }
+        },
         "loads.StatsResponse": {
             "type": "object",
             "properties": {
                 "meta": {
                     "$ref": "#/definitions/loads.StatsMeta"
+                },
+                "query": {
+                    "$ref": "#/definitions/loads.StatsQueryEcho"
                 },
                 "requestURL": {
                     "type": "string"

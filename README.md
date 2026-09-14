@@ -316,14 +316,20 @@ used when a param was omitted from the request.
 
 ## GET /loads/stats
 
-Returns aggregate counts across the full loads collection. Filtering,
-quicksearch, sorting, and pagination parameters do not apply to this endpoint.
+Returns aggregate counts for loads matching `quickSearch` or its `q` alias.
+Search matching uses the same case-insensitive, all-field semantics as
+`GET /loads`; `quickSearch` wins when both aliases are present. Other filtering,
+sorting, and pagination parameters do not apply.
 
 ```json
 {
-  "requestURL": "/loads/stats",
+  "requestURL": "/loads/stats?q=chicago",
+  "query": {
+    "quickSearch": "chicago"
+  },
   "meta": {
     "numTotal": 100000,
+    "numResults": 1248,
     "responseTimeMs": 68,
     "timestamp": "2026-09-13T07:40:43.281552398Z"
   },
@@ -345,12 +351,16 @@ quicksearch, sorting, and pagination parameters do not apply to this endpoint.
 ```
 
 The category labels and ordering are stable; a category with no matching loads
-has a value of zero. Unexpected category values remain part of `meta.numTotal`
-but are not added to the category arrays.
+has a value of zero. `meta.numTotal` is always the full collection count, while
+`meta.numResults` and the category values reflect the effective quick search.
+Unexpected category values remain part of `meta.numResults` but are not added
+to the category arrays. `query.quickSearch` is always present, including as an
+empty string when no search was supplied.
 
-Successful aggregate results are cached in each API process for
-`LOAD_STATS_CACHE_TTL` (default `5m`). Request timing and timestamp metadata are
-generated fresh for every response. Set the TTL to `0` to disable caching.
+Successful aggregate results are cached by effective search string in each API
+process for `LOAD_STATS_CACHE_TTL` (default `5m`). The least recently used entry
+is evicted after 50 distinct searches. Request timing and timestamp metadata
+are generated fresh for every response. Set the TTL to `0` to disable caching.
 
 ## GET /load/{id} and GET /load?id={id}
 

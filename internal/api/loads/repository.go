@@ -66,17 +66,26 @@ func (r *Repository) FindByID(ctx context.Context, id string) (Load, error) {
 	return load, err
 }
 
-// GetStats returns full-collection counts for the fixed dashboard categories.
-func (r *Repository) GetStats(ctx context.Context) (LoadStats, error) {
-	pipeline := mongo.Pipeline{bson.D{{Key: "$group", Value: bson.D{
+// GetStats returns full and filtered counts for the fixed dashboard categories.
+func (r *Repository) GetStats(ctx context.Context, filter bson.M) (LoadStats, error) {
+	filteredPipeline := bson.A{}
+	if len(filter) > 0 {
+		filteredPipeline = append(filteredPipeline, bson.D{{Key: "$match", Value: filter}})
+	}
+	filteredPipeline = append(filteredPipeline, bson.D{{Key: "$group", Value: bson.D{
 		{Key: "_id", Value: nil},
-		{Key: "numTotal", Value: bson.D{{Key: "$sum", Value: 1}}},
+		{Key: "numResults", Value: bson.D{{Key: "$sum", Value: 1}}},
 		{Key: "flatbed", Value: conditionalCount("equipmentType", "Flatbed")},
 		{Key: "reefer", Value: conditionalCount("equipmentType", "Reefer")},
 		{Key: "van", Value: conditionalCount("equipmentType", "Van")},
 		{Key: "available", Value: conditionalCount("status", "Available")},
 		{Key: "inTransit", Value: conditionalCount("status", "In Transit")},
 		{Key: "delivered", Value: conditionalCount("status", "Delivered")},
+	}}})
+
+	pipeline := mongo.Pipeline{bson.D{{Key: "$facet", Value: bson.D{
+		{Key: "total", Value: bson.A{bson.D{{Key: "$count", Value: "value"}}}},
+		{Key: "filtered", Value: filteredPipeline},
 	}}}}
 
 	cursor, err := r.collection.Aggregate(ctx, pipeline)
@@ -86,13 +95,18 @@ func (r *Repository) GetStats(ctx context.Context) (LoadStats, error) {
 	defer cursor.Close(ctx)
 
 	var result struct {
-		NumTotal  int64 `bson:"numTotal"`
-		Flatbed   int64 `bson:"flatbed"`
-		Reefer    int64 `bson:"reefer"`
-		Van       int64 `bson:"van"`
-		Available int64 `bson:"available"`
-		InTransit int64 `bson:"inTransit"`
-		Delivered int64 `bson:"delivered"`
+		Total []struct {
+			Value int64 `bson:"value"`
+		} `bson:"total"`
+		Filtered []struct {
+			NumResults int64 `bson:"numResults"`
+			Flatbed    int64 `bson:"flatbed"`
+			Reefer     int64 `bson:"reefer"`
+			Van        int64 `bson:"van"`
+			Available  int64 `bson:"available"`
+			InTransit  int64 `bson:"inTransit"`
+			Delivered  int64 `bson:"delivered"`
+		} `bson:"filtered"`
 	}
 	if cursor.Next(ctx) {
 		if err := cursor.Decode(&result); err != nil {
@@ -103,19 +117,32 @@ func (r *Repository) GetStats(ctx context.Context) (LoadStats, error) {
 		return LoadStats{}, err
 	}
 
-	return LoadStats{
-		NumTotal: result.NumTotal,
+	stats := LoadStats{
 		EquipmentType: []StatCount{
-			{Label: "Flatbed", Value: result.Flatbed},
-			{Label: "Reefer", Value: result.Reefer},
-			{Label: "Van", Value: result.Van},
+			{Label: "Flatbed"},
+			{Label: "Reefer"},
+			{Label: "Van"},
 		},
 		Status: []StatCount{
-			{Label: "Available", Value: result.Available},
-			{Label: "In Transit", Value: result.InTransit},
-			{Label: "Delivered", Value: result.Delivered},
+			{Label: "Available"},
+			{Label: "In Transit"},
+			{Label: "Delivered"},
 		},
-	}, nil
+	}
+	if len(result.Total) > 0 {
+		stats.NumTotal = result.Total[0].Value
+	}
+	if len(result.Filtered) > 0 {
+		filtered := result.Filtered[0]
+		stats.NumResults = filtered.NumResults
+		stats.EquipmentType[0].Value = filtered.Flatbed
+		stats.EquipmentType[1].Value = filtered.Reefer
+		stats.EquipmentType[2].Value = filtered.Van
+		stats.Status[0].Value = filtered.Available
+		stats.Status[1].Value = filtered.InTransit
+		stats.Status[2].Value = filtered.Delivered
+	}
+	return stats, nil
 }
 
 func conditionalCount(field, value string) bson.D {

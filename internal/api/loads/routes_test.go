@@ -16,7 +16,7 @@ func TestRegisterRoutes(t *testing.T) {
 		getLoad: func(context.Context, string) (Load, error) {
 			return Load{ID: "LD-000001"}, nil
 		},
-		getStats: func(context.Context) (LoadStats, error) {
+		getStats: func(context.Context, string) (LoadStats, error) {
 			return LoadStats{}, nil
 		},
 	}

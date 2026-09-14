@@ -9,13 +9,20 @@ import (
 
 // StatsResponse is the GET /loads/stats payload.
 type StatsResponse struct {
-	RequestURL string    `json:"requestURL"`
-	Meta       StatsMeta `json:"meta"`
-	Stats      StatsBody `json:"stats"`
+	RequestURL string         `json:"requestURL"`
+	Query      StatsQueryEcho `json:"query"`
+	Meta       StatsMeta      `json:"meta"`
+	Stats      StatsBody      `json:"stats"`
 }
 
-// StatsMeta contains full-dataset and request timing metadata.
+// StatsQueryEcho reflects the effective stats query parameters.
+type StatsQueryEcho struct {
+	QuickSearch string `json:"quickSearch"`
+}
+
+// StatsMeta contains full and filtered counts plus request timing metadata.
 type StatsMeta struct {
+	NumResults     int64     `json:"numResults"`
 	NumTotal       int64     `json:"numTotal"`
 	ResponseTimeMs int64     `json:"responseTimeMs"`
 	Timestamp      time.Time `json:"timestamp"`
@@ -28,21 +35,24 @@ type StatsBody struct {
 
 // StatsHandler returns the GET /loads/stats handler backed by the given service.
 //
-// @Summary      Get full-dataset freight load statistics
-// @Description  Returns fixed equipment type and status counts across all loads.
+// @Summary      Get freight load statistics
+// @Description  Returns fixed equipment type and status counts across all matching loads.
 // @Tags         loads
 // @Produce      json
+// @Param        quickSearch query string false "Substring match across every field; alias: q"
+// @Param        q query string false "Alias for quickSearch; ignored when quickSearch is set"
 // @Success      200 {object} loads.StatsResponse
 // @Failure      500 {object} loads.ErrorResponse
 // @Router       /loads/stats [get]
 func StatsHandler(service LoadService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		quickSearch := parseQuickSearch(r.URL.Query())
 
 		ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
 		defer cancel()
 
-		stats, err := service.GetLoadStats(ctx)
+		stats, err := service.GetLoadStats(ctx, quickSearch)
 		if err != nil {
 			log.Printf("load stats failed: %v", err)
 			writeError(w, http.StatusInternalServerError, "LOAD_STATS_FAILED", "Unable to load freight statistics.")
@@ -51,7 +61,9 @@ func StatsHandler(service LoadService) http.HandlerFunc {
 
 		writeJSON(w, http.StatusOK, StatsResponse{
 			RequestURL: requestedURL(r),
+			Query:      StatsQueryEcho{QuickSearch: quickSearch},
 			Meta: StatsMeta{
+				NumResults:     stats.NumResults,
 				NumTotal:       stats.NumTotal,
 				ResponseTimeMs: max(1, time.Since(start).Milliseconds()),
 				Timestamp:      time.Now().UTC(),

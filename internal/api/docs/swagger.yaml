@@ -184,6 +184,8 @@ definitions:
     type: object
   loads.StatsMeta:
     properties:
+      numResults:
+        type: integer
       numTotal:
         type: integer
       responseTimeMs:
@@ -191,10 +193,17 @@ definitions:
       timestamp:
         type: string
     type: object
+  loads.StatsQueryEcho:
+    properties:
+      quickSearch:
+        type: string
+    type: object
   loads.StatsResponse:
     properties:
       meta:
         $ref: '#/definitions/loads.StatsMeta'
+      query:
+        $ref: '#/definitions/loads.StatsQueryEcho'
       requestURL:
         type: string
       stats:
@@ -325,7 +334,17 @@ paths:
       - loads
   /loads/stats:
     get:
-      description: Returns fixed equipment type and status counts across all loads.
+      description: Returns fixed equipment type and status counts across all matching
+        loads.
+      parameters:
+      - description: 'Substring match across every field; alias: q'
+        in: query
+        name: quickSearch
+        type: string
+      - description: Alias for quickSearch; ignored when quickSearch is set
+        in: query
+        name: q
+        type: string
       produces:
       - application/json
       responses:
@@ -337,7 +356,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/loads.ErrorResponse'
-      summary: Get full-dataset freight load statistics
+      summary: Get freight load statistics
       tags:
       - loads
 swagger: "2.0"

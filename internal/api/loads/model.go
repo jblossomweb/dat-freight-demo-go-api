@@ -24,6 +24,7 @@ type StatCount struct {
 // LoadStats contains full-dataset load counts.
 type LoadStats struct {
 	NumTotal      int64       `json:"-"`
+	NumResults    int64       `json:"-"`
 	EquipmentType []StatCount `json:"equipmentType"`
 	Status        []StatCount `json:"status"`
 }

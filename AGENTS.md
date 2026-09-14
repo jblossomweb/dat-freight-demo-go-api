@@ -154,6 +154,14 @@ development and preview origins on ports 5173 and 4173. Added configuration
 validation, middleware tests, and README guidance for local and environment-
 specific origin policy.
 
+**Phase 21 (done):** Extended `GET /loads/stats` with the same `quickSearch` and
+`q` all-field search supported by `GET /loads`. The endpoint now echoes the
+effective quick search, preserves the full collection count as `meta.numTotal`,
+reports the matching count as `meta.numResults`, and calculates its fixed,
+ordered equipment and status totals from the filtered dataset. Reworked the
+stats cache into a fixed 50-entry TTL/LRU keyed by effective search term, added
+filtered aggregation and cache coverage, and updated README and Swagger docs.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
