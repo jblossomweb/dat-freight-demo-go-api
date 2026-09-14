@@ -143,6 +143,17 @@ caching), while request timing and timestamps remain fresh. Added route,
 handler, service/cache, configuration, and repository integration coverage,
 documented the endpoint in README, and regenerated the committed Swagger spec.
 
+**Phase 20 (done):** Added configurable CORS support at the API server boundary
+so browser-based frontends can call every endpoint consistently. The
+standard-library middleware uses an exact origin allowlist from the
+comma-separated `CORS_ALLOWED_ORIGINS` environment variable, handles `OPTIONS`
+preflight requests for `GET`, returns `Vary: Origin`, and rejects disallowed
+preflights without enabling wildcard origins. CORS remains disabled when the
+variable is unset; local Compose and `.env.example` explicitly allow the Vite
+development and preview origins on ports 5173 and 4173. Added configuration
+validation, middleware tests, and README guidance for local and environment-
+specific origin policy.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

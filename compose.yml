@@ -37,6 +37,7 @@ services:
       MONGO_URI: ${MONGO_URI}
       MONGO_DB_NAME: ${MONGO_DB_NAME:-freight}
       LOAD_STATS_CACHE_TTL: ${LOAD_STATS_CACHE_TTL:-5m}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
     depends_on:
       mongo:
         condition: service_healthy

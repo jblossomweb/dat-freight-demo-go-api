@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -11,12 +12,14 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("PORT", "")
 		t.Setenv("MONGO_DB_NAME", "")
 		t.Setenv("LOAD_STATS_CACHE_TTL", "")
+		t.Setenv("CORS_ALLOWED_ORIGINS", "")
 
 		got, err := loadConfig()
 		if err != nil {
 			t.Fatalf("loadConfig() error = %v", err)
 		}
-		if got.port != "8080" || got.mongoURI != "mongodb://example:27017" || got.dbName != "freight" || got.statsCacheTTL != 5*time.Minute {
+		wantOrigins := []string{}
+		if got.port != "8080" || got.mongoURI != "mongodb://example:27017" || got.dbName != "freight" || got.statsCacheTTL != 5*time.Minute || !reflect.DeepEqual(got.allowedOrigins, wantOrigins) {
 			t.Fatalf("loadConfig() = %#v, want default port/db and configured URI", got)
 		}
 	})
@@ -26,12 +29,14 @@ func TestLoadConfig(t *testing.T) {
 		t.Setenv("PORT", "9090")
 		t.Setenv("MONGO_DB_NAME", "staging")
 		t.Setenv("LOAD_STATS_CACHE_TTL", "30s")
+		t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com, http://localhost:4173/")
 
 		got, err := loadConfig()
 		if err != nil {
 			t.Fatalf("loadConfig() error = %v", err)
 		}
-		if got.port != "9090" || got.mongoURI != "mongodb://example:27017" || got.dbName != "staging" || got.statsCacheTTL != 30*time.Second {
+		wantOrigins := []string{"https://app.example.com", "http://localhost:4173"}
+		if got.port != "9090" || got.mongoURI != "mongodb://example:27017" || got.dbName != "staging" || got.statsCacheTTL != 30*time.Second || !reflect.DeepEqual(got.allowedOrigins, wantOrigins) {
 			t.Fatalf("loadConfig() = %#v, want configured values", got)
 		}
 	})
@@ -53,6 +58,16 @@ func TestLoadConfig(t *testing.T) {
 		t.Run("invalid stats cache TTL "+value, func(t *testing.T) {
 			t.Setenv("MONGO_URI", "mongodb://example:27017")
 			t.Setenv("LOAD_STATS_CACHE_TTL", value)
+			if _, err := loadConfig(); err == nil {
+				t.Fatalf("loadConfig() error = nil, want error for %q", value)
+			}
+		})
+	}
+
+	for _, value := range []string{"*", "localhost:5173", "https://example.com/path"} {
+		t.Run("invalid CORS origin "+value, func(t *testing.T) {
+			t.Setenv("MONGO_URI", "mongodb://example:27017")
+			t.Setenv("CORS_ALLOWED_ORIGINS", value)
 			if _, err := loadConfig(); err == nil {
 				t.Fatalf("loadConfig() error = nil, want error for %q", value)
 			}

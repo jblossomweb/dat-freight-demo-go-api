@@ -21,7 +21,7 @@ func (p mongoPinger) Ping(ctx context.Context) error {
 	return p.client.Ping(ctx, nil)
 }
 
-func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration) *http.Server {
+func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration, allowedOrigins []string) *http.Server {
 	mux := http.NewServeMux()
 
 	health.RegisterRoutes(mux, mongoPinger{client: client})
@@ -33,6 +33,6 @@ func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration)
 	mux.Handle("/docs/", httpSwagger.WrapHandler)
 
 	return &http.Server{
-		Handler: mux,
+		Handler: corsMiddleware(allowedOrigins, mux),
 	}
 }

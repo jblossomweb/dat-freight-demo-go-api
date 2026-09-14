@@ -202,12 +202,13 @@ compose.yml            - api + mongo services
 
 ## Environment variables
 
-| Var                  | Default  | Description                                |
-| -------------------- | -------- | ------------------------------------------ |
-| PORT                 | 8080     | HTTP listen port                           |
-| MONGO_URI            | required | MongoDB connection string                  |
-| MONGO_DB_NAME        | freight  | Target database name                       |
-| LOAD_STATS_CACHE_TTL | 5m       | Stats cache duration; `0` disables caching |
+| Var                  | Default  | Description                                    |
+| -------------------- | -------- | ---------------------------------------------- |
+| PORT                 | 8080     | HTTP listen port                               |
+| MONGO_URI            | required | MongoDB connection string                      |
+| MONGO_DB_NAME        | freight  | Target database name                           |
+| LOAD_STATS_CACHE_TTL | 5m       | Stats cache duration; `0` disables caching     |
+| CORS_ALLOWED_ORIGINS | none     | Comma-separated exact browser origins to allow |
 
 `MONGO_URI` is read directly from the environment by both `cmd/api` and
 `cmd/seed` (and passed through by `compose.yml` from `.env`), so pointing at a
@@ -222,6 +223,21 @@ Or copy `.env.example` to `.env` and set `MONGO_URI` there before
 `docker compose up` to point the whole stack's `api` container at a remote
 database instead of the local `mongo` container (in which case you likely
 don't need the `mongo` service running at all).
+
+### Local frontend CORS
+
+The local Compose stack allows the Vite development and preview origins by
+default:
+
+```text
+http://localhost:5173,http://localhost:4173
+```
+
+Override `CORS_ALLOWED_ORIGINS` in `.env` when the frontend uses a different
+origin. Origins must include the scheme and port, must not contain a path, and
+must be separated by commas. Wildcard origins are not accepted. Restart the API
+with `make docker-up` after changing this value. When the variable is unset
+outside Compose, cross-origin browser access is disabled.
 
 ## Seeding data
 

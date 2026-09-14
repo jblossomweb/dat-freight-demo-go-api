@@ -90,6 +90,7 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           MONGO_DB_NAME: ${{ secrets.MONGO_DB_NAME || 'freight' }}
           LOAD_STATS_CACHE_TTL: ${{ vars.LOAD_STATS_CACHE_TTL || '5m' }}
+          CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
         run: |
           GHCR_PAT_B64=$(printf '%s' "${GHCR_PAT}" | base64 | tr -d '\n')
@@ -102,6 +103,7 @@ jobs:
             --arg mongo_uri_b64 "${MONGO_URI_B64}" \
             --arg mongo_db_name "${MONGO_DB_NAME}" \
             --arg stats_cache_ttl "${LOAD_STATS_CACHE_TTL}" \
+            --arg cors_allowed_origins "${CORS_ALLOWED_ORIGINS}" \
             --arg image "${IMAGE}" \
             --arg actor "${{ github.actor }}" \
             --arg container_name "${{ env.CONTAINER_NAME }}" \
@@ -118,7 +120,7 @@ jobs:
               "sudo docker --config \"${DOCKER_CONFIG}\" pull \"\($image)\"",
               "sudo docker stop \"\($container_name)\" || true",
               "sudo docker rm \"\($container_name)\" || true",
-              "sudo docker run -d --name \"\($container_name)\" --restart unless-stopped -p \"\($host_port):\($container_port)\" -e PORT=\"\($container_port)\" -e MONGO_URI=\"${MONGO_URI}\" -e MONGO_DB_NAME=\"\($mongo_db_name)\" -e LOAD_STATS_CACHE_TTL=\"\($stats_cache_ttl)\" \"\($image)\"",
+              "sudo docker run -d --name \"\($container_name)\" --restart unless-stopped -p \"\($host_port):\($container_port)\" -e PORT=\"\($container_port)\" -e MONGO_URI=\"${MONGO_URI}\" -e MONGO_DB_NAME=\"\($mongo_db_name)\" -e LOAD_STATS_CACHE_TTL=\"\($stats_cache_ttl)\" -e CORS_ALLOWED_ORIGINS=\"\($cors_allowed_origins)\" \"\($image)\"",
               "sudo docker ps --filter \"name=\($container_name)\" --format \"table {{.Names}}\\t{{.Status}}\\t{{.Image}}\""
             ]}')
 
