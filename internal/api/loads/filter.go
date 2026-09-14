@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"encoding/json"
 
@@ -24,7 +25,9 @@ func BuildMongoFilter(req QueryRequest) (bson.M, error) {
 	}
 
 	if req.QuickSearch != "" {
-		and = append(and, buildQuickSearch(req.QuickSearch))
+		if quickSearch := buildQuickSearch(req.QuickSearch); len(quickSearch) > 0 {
+			and = append(and, quickSearch)
+		}
 	}
 
 	if len(and) == 0 {
@@ -33,12 +36,15 @@ func BuildMongoFilter(req QueryRequest) (bson.M, error) {
 	return bson.M{"$and": and}, nil
 }
 
-// buildQuickSearch matches the client's AG Grid quick filter, which searches every
-// column for any whitespace-delimited term. String columns get a direct regex
+// buildQuickSearch searches every column for any whitespace-delimited term,
+// treating double-quoted text as one term. String columns get a direct regex
 // match; numeric columns (stored as BSON numbers) are matched via $expr/$toString
 // since Mongo regex only applies to strings.
 func buildQuickSearch(term string) bson.M {
-	terms := strings.Fields(term)
+	terms := tokenizeQuickSearch(term)
+	if len(terms) == 0 {
+		return bson.M{}
+	}
 	or := make([]bson.M, 0, len(terms)*(len(stringFields)+len(numberFields)))
 	for _, searchTerm := range terms {
 		escaped := regexp.QuoteMeta(searchTerm)
@@ -59,6 +65,48 @@ func buildQuickSearch(term string) bson.M {
 		}
 	}
 	return bson.M{"$or": or}
+}
+
+func tokenizeQuickSearch(value string) []string {
+	var terms []string
+	var term strings.Builder
+	inQuotes := false
+	escaped := false
+	flush := func() {
+		if term.Len() > 0 {
+			terms = append(terms, term.String())
+			term.Reset()
+		}
+	}
+
+	for _, char := range value {
+		if escaped {
+			if char != '"' {
+				term.WriteRune('\\')
+			}
+			term.WriteRune(char)
+			escaped = false
+			continue
+		}
+		if inQuotes && char == '\\' {
+			escaped = true
+			continue
+		}
+		if char == '"' {
+			inQuotes = !inQuotes
+			continue
+		}
+		if !inQuotes && unicode.IsSpace(char) {
+			flush()
+			continue
+		}
+		term.WriteRune(char)
+	}
+	if escaped {
+		term.WriteRune('\\')
+	}
+	flush()
+	return terms
 }
 
 func buildFieldFilter(field string, entry FilterModelEntry) (bson.M, error) {

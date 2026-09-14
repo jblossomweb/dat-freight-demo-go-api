@@ -150,7 +150,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Trimmed, space-delimited OR substring match across every field; alias: q",
+                        "description": "Trimmed OR substring match across every field; double quotes group phrases; alias: q",
                         "name": "quickSearch",
                         "in": "query"
                     },
@@ -196,7 +196,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Trimmed, space-delimited OR substring match across every field; alias: q",
+                        "description": "Trimmed OR substring match across every field; double quotes group phrases; alias: q",
                         "name": "quickSearch",
                         "in": "query"
                     },

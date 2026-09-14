@@ -124,6 +124,13 @@ func TestRepositoryIntegration(t *testing.T) {
 			wantStatus: []StatCount{{Label: "Available", Value: 1}, {Label: "In Transit", Value: 1}, {Label: "Delivered"}},
 		},
 		{
+			name:       "quoted phrase remains one OR term",
+			term:       `"Alpha Freight" Charlie`,
+			wantResult: 2,
+			wantEquip:  []StatCount{{Label: "Flatbed", Value: 1}, {Label: "Reefer"}, {Label: "Van", Value: 1}},
+			wantStatus: []StatCount{{Label: "Available", Value: 1}, {Label: "In Transit"}, {Label: "Delivered", Value: 1}},
+		},
+		{
 			name:       "no match",
 			term:       "missing",
 			wantResult: 0,

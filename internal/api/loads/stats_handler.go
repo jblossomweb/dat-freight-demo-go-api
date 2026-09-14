@@ -39,7 +39,7 @@ type StatsBody struct {
 // @Description  Returns fixed equipment type and status counts across all matching loads.
 // @Tags         loads
 // @Produce      json
-// @Param        quickSearch query string false "Trimmed, space-delimited OR substring match across every field; alias: q"
+// @Param        quickSearch query string false "Trimmed OR substring match across every field; double quotes group phrases; alias: q"
 // @Param        q query string false "Trimmed alias for quickSearch; ignored when trimmed quickSearch is non-empty"
 // @Success      200 {object} loads.StatsResponse
 // @Failure      500 {object} loads.ErrorResponse

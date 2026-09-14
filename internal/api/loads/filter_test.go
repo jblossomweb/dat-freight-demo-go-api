@@ -20,6 +20,16 @@ func TestBuildMongoFilter(t *testing.T) {
 		}
 	})
 
+	t.Run("empty quoted quicksearch is ignored", func(t *testing.T) {
+		got, err := BuildMongoFilter(QueryRequest{QuickSearch: `""`})
+		if err != nil {
+			t.Fatalf("BuildMongoFilter() error = %v", err)
+		}
+		if !reflect.DeepEqual(got, bson.M{}) {
+			t.Fatalf("filter = %#v, want empty filter", got)
+		}
+	})
+
 	t.Run("combines filters and quicksearch", func(t *testing.T) {
 		got, err := BuildMongoFilter(QueryRequest{
 			Filters: map[string]FilterModelEntry{
@@ -207,7 +217,7 @@ func TestBuildSetFilter(t *testing.T) {
 }
 
 func TestBuildQuickSearch(t *testing.T) {
-	got := buildQuickSearch("  A+B\tC.D  ")
+	got := buildQuickSearch(`  "A+B C.D"  E?F  `)
 	or, ok := got["$or"].([]bson.M)
 	if !ok {
 		t.Fatalf("$or = %#v, want []bson.M", got["$or"])
@@ -217,7 +227,7 @@ func TestBuildQuickSearch(t *testing.T) {
 		t.Fatalf("len($or) = %d, want %d", len(or), wantAlternatives)
 	}
 
-	for _, pattern := range []string{"A\\+B", "C\\.D"} {
+	for _, pattern := range []string{"A\\+B C\\.D", "E\\?F"} {
 		for _, field := range stringFields {
 			if !containsBSONRegex(or, field, bson.Regex{Pattern: pattern, Options: "i"}) {
 				t.Errorf("quicksearch missing string regex %q for %q", pattern, field)
@@ -228,6 +238,31 @@ func TestBuildQuickSearch(t *testing.T) {
 				t.Errorf("quicksearch missing numeric expression %q for %q", pattern, field)
 			}
 		}
+	}
+}
+
+func TestTokenizeQuickSearch(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  []string
+	}{
+		{name: "unquoted terms", value: "miami denver", want: []string{"miami", "denver"}},
+		{name: "quoted phrase and term", value: `"new york" miami`, want: []string{"new york", "miami"}},
+		{name: "escaped quote in phrase", value: `"J.B. \"Hunt\"" reefer`, want: []string{`J.B. "Hunt"`, "reefer"}},
+		{name: "empty quotes ignored", value: `"" miami ""`, want: []string{"miami"}},
+		{name: "unicode whitespace separates terms", value: "miami\u2003denver", want: []string{"miami", "denver"}},
+		{name: "whitespace preserved in phrase", value: `"new  york"`, want: []string{"new  york"}},
+		{name: "unfinished quote groups remainder", value: `miami "new york`, want: []string{"miami", "new york"}},
+		{name: "literal backslash preserved", value: `"a\b"`, want: []string{`a\b`}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := tokenizeQuickSearch(test.value); !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("tokenizeQuickSearch(%q) = %#v, want %#v", test.value, got, test.want)
+			}
+		})
 	}
 }
 

@@ -179,6 +179,15 @@ overall quick search using AND, and query echoing plus stats cache keys retain
 the normalized original string. Added unit and Mongo integration coverage and
 updated README and Swagger docs.
 
+**Phase 24 (done):** Added double-quoted phrase grouping to multi-term quick
+search on `GET /loads` and `GET /loads/stats`, so input such as `"new york"
+miami` matches the phrase `new york` or the term `miami`. The tokenizer supports
+escaped quotes inside phrases, ignores empty quoted terms, preserves phrase
+whitespace, and treats an unmatched opening quote as grouping the remaining
+input to avoid errors while users type. Query echoes and stats cache keys retain
+the normalized original search string. Added unit and Mongo integration
+coverage and updated README and Swagger docs.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
