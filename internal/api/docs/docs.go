@@ -150,7 +150,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Substring match across every field; alias: q",
+                        "description": "Trimmed substring match across every field; alias: q",
                         "name": "quickSearch",
                         "in": "query"
                     },
@@ -196,13 +196,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Substring match across every field; alias: q",
+                        "description": "Trimmed substring match across every field; alias: q",
                         "name": "quickSearch",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Alias for quickSearch; ignored when quickSearch is set",
+                        "description": "Trimmed alias for quickSearch; ignored when trimmed quickSearch is non-empty",
                         "name": "q",
                         "in": "query"
                     }

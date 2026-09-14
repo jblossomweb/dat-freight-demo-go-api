@@ -65,6 +65,30 @@ func TestListHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("trims quick search while preserving request URL", func(t *testing.T) {
+		var received QueryRequest
+		service := fakeLoadService{
+			listLoads: func(_ context.Context, req QueryRequest) ([]Load, int64, int64, error) {
+				received = req
+				return nil, 0, 0, nil
+			},
+		}
+		recorder := httptest.NewRecorder()
+
+		ListHandler(service)(recorder, httptest.NewRequest(http.MethodGet, "/loads?quickSearch=%20miami%20", nil))
+
+		var response ListResponse
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if received.QuickSearch != "miami" || response.Query.QuickSearch != "miami" {
+			t.Fatalf("quickSearch = service %q, echo %q; want miami", received.QuickSearch, response.Query.QuickSearch)
+		}
+		if response.RequestURL != "/loads?quickSearch=%20miami%20" {
+			t.Fatalf("requestURL = %q, want raw padded query", response.RequestURL)
+		}
+	})
+
 	t.Run("invalid query returns bad request without calling service", func(t *testing.T) {
 		called := false
 		service := fakeLoadService{

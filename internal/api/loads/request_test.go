@@ -86,6 +86,11 @@ func TestParseQueryQuickSearch(t *testing.T) {
 		{name: "quickSearch", query: url.Values{"quickSearch": {"chicago"}}, want: "chicago"},
 		{name: "q alias", query: url.Values{"q": {"chicago"}}, want: "chicago"},
 		{name: "quickSearch wins over q", query: url.Values{"quickSearch": {"chicago"}, "q": {"denver"}}, want: "chicago"},
+		{name: "trims quickSearch", query: url.Values{"quickSearch": {"  chicago  "}}, want: "chicago"},
+		{name: "trims q alias", query: url.Values{"q": {"  chicago  "}}, want: "chicago"},
+		{name: "preserves internal spaces", query: url.Values{"quickSearch": {"  new  york  "}}, want: "new  york"},
+		{name: "whitespace-only quickSearch falls back to q", query: url.Values{"quickSearch": {"  "}, "q": {" miami "}}, want: "miami"},
+		{name: "whitespace-only values are empty", query: url.Values{"quickSearch": {"  "}, "q": {"\t"}}, want: ""},
 	}
 
 	for _, test := range tests {

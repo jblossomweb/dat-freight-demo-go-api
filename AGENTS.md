@@ -162,6 +162,15 @@ ordered equipment and status totals from the filtered dataset. Reworked the
 stats cache into a fixed 50-entry TTL/LRU keyed by effective search term, added
 filtered aggregation and cache coverage, and updated README and Swagger docs.
 
+**Phase 22 (done):** Aligned server-side quick search with the client's quick
+filter by trimming leading and trailing whitespace from `quickSearch` and `q`
+on both `GET /loads` and `GET /loads/stats`, while preserving internal
+whitespace. Normalization now happens before alias precedence, query echoing,
+filter construction, and stats cache lookup, so whitespace-only `quickSearch`
+values fall back to a meaningful `q` value and equivalent padded searches share
+the same cache entry. Added parser and handler regressions and updated README
+and Swagger docs.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

@@ -154,10 +154,10 @@ func ParseQuery(q url.Values) (QueryRequest, error) {
 }
 
 func parseQuickSearch(q url.Values) string {
-	if quickSearch := q.Get("quickSearch"); quickSearch != "" {
+	if quickSearch := strings.TrimSpace(q.Get("quickSearch")); quickSearch != "" {
 		return quickSearch
 	}
-	return q.Get("q")
+	return strings.TrimSpace(q.Get("q"))
 }
 
 // aliasFilterEntry builds the effective filter for an alias param: a single

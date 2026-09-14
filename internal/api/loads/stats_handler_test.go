@@ -82,6 +82,28 @@ func TestStatsHandler(t *testing.T) {
 		}
 	})
 
+	t.Run("trims q while preserving request URL", func(t *testing.T) {
+		var received string
+		service := fakeLoadService{getStats: func(_ context.Context, quickSearch string) (LoadStats, error) {
+			received = quickSearch
+			return LoadStats{}, nil
+		}}
+		recorder := httptest.NewRecorder()
+
+		StatsHandler(service)(recorder, httptest.NewRequest(http.MethodGet, "/loads/stats?q=%20miami%20", nil))
+
+		var response StatsResponse
+		if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		if received != "miami" || response.Query.QuickSearch != "miami" {
+			t.Fatalf("quickSearch = service %q, echo %q; want miami", received, response.Query.QuickSearch)
+		}
+		if response.RequestURL != "/loads/stats?q=%20miami%20" {
+			t.Fatalf("requestURL = %q, want raw padded query", response.RequestURL)
+		}
+	})
+
 	t.Run("empty query echo", func(t *testing.T) {
 		service := fakeLoadService{getStats: func(context.Context, string) (LoadStats, error) {
 			return LoadStats{}, nil
