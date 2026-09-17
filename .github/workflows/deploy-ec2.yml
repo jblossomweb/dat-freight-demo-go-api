@@ -236,6 +236,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
 
+      - name: Parse Health Check
+        id: parse-health
+        env:
+          HEALTH_JSON: ${{ needs.deploy.outputs.health_json }}
+        run: |
+          API_STATUS="n/a"
+          DB_STATUS="n/a"
+
+          if [ -n "${HEALTH_JSON}" ] && [ "${HEALTH_JSON}" != "unreachable" ]; then
+            API_STATUS=$(echo "${HEALTH_JSON}" | jq -r '.status // "n/a"')
+            DB_STATUS=$(echo "${HEALTH_JSON}" | jq -r '.mongo // "n/a"')
+          fi
+
+          {
+            echo "api_status=${API_STATUS}"
+            echo "db_status=${DB_STATUS}"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Report Deployment
         uses: ./.github/actions/report-workflow
         with:
@@ -246,7 +264,9 @@ jobs:
             | Validate | `${{ needs.validate.result }}` |
             | Build and Push | `${{ needs.build-and-push.result }}` |
             | Deploy | `${{ needs.deploy.result }}` |
-            | Health Check | `${{ needs.deploy.outputs.health_json || 'n/a' }}` |
+          health-checks: |
+            ${{ needs.deploy.outputs.health_json != '' && format('| API Status | `{0}` |', steps.parse-health.outputs.api_status) || '' }}
+            ${{ needs.deploy.outputs.health_json != '' && format('| DB Status | `{0}` |', steps.parse-health.outputs.db_status) || '' }}
           deployment-links: |
             ${{ (needs.deploy.result == 'success' && needs.deploy.outputs.api_url != '') && format('| API Base URL | {0} |', needs.deploy.outputs.api_url) || '' }}
             ${{ (needs.deploy.result == 'success' && needs.deploy.outputs.api_url != '') && format('| Health Check | {0}/health |', needs.deploy.outputs.api_url) || '' }}
