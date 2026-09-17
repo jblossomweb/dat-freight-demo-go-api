@@ -79,6 +79,8 @@ runs:
         {
           echo "## $EMOJI $REPORT_TITLE Summary: \`$REPORT_STATUS\`"
           echo ""
+          echo "Commit: $REPORT_COMMIT"
+          echo ""
           echo ""
           if [[ -n "$REPORT_CHECKS" ]]; then
             echo "| Check | Result |"
@@ -90,8 +92,6 @@ runs:
             echo ""
             echo "Test Summary:"
             echo "[Vitest Test Report]($TEST_SUMMARY_URL)"
-            echo ""
-            echo "Commit: \`$REPORT_COMMIT\`"
           fi
           if [[ -n "$REPORT_HEALTH_CHECKS" ]]; then
             echo ""
