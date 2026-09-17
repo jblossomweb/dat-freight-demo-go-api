@@ -262,8 +262,6 @@ jobs:
           commit: ${{ github.sha }}
           show-test-summary: "false"
           checks: |
-            | Workflow | `${{ (needs.validate.result == 'success' && needs.build-and-push.result == 'success' && needs.deploy.result == 'success') && 'success' || 'failure' }}` |
-            | Commit | `${{ github.sha }}` |
             | Validate | `${{ needs.validate.result }}` |
             | Build and Push | `${{ needs.build-and-push.result }}` |
             | Deploy | `${{ needs.deploy.result }}` |
