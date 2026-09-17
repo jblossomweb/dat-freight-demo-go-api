@@ -168,26 +168,29 @@ jobs:
 
       - name: Resolve Public Endpoint
         id: resolve-endpoint
+        continue-on-error: true
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
+          set +e
+
           HOST=$(aws ec2 describe-instances \
             --instance-ids "${INSTANCE_ID}" \
             --region "${AWS_REGION}" \
             --query 'Reservations[0].Instances[0].PublicDnsName' \
-            --output text)
+            --output text 2>/dev/null)
 
           if [ -z "${HOST}" ] || [ "${HOST}" = "None" ]; then
             HOST=$(aws ec2 describe-instances \
               --instance-ids "${INSTANCE_ID}" \
               --region "${AWS_REGION}" \
               --query 'Reservations[0].Instances[0].PublicIpAddress' \
-              --output text)
+              --output text 2>/dev/null)
           fi
 
           if [ -z "${HOST}" ] || [ "${HOST}" = "None" ]; then
-            echo "Could not resolve a public hostname or IP for the EC2 instance; leaving api_url blank."
+            echo "::warning::Could not resolve a public hostname or IP for the EC2 instance; the deploy succeeded, but the report will omit the live API link."
             echo "api_url=" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
