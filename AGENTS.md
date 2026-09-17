@@ -195,6 +195,12 @@ which writes a job summary and posts/updates a PR comment. No deployment is
 triggered by this workflow (deployment remains `deploy-ec2.yml`, triggered
 separately by pushes to `main`).
 
+**Phase 26 (done):** Added middleware to forward `/api/` routes in order to
+support a Reverse Proxy through a CloudFront distribution with a behavior of
+`/api/*` pointing at the EC2 instance, pursuant to supporting HTTPS traffic.
+Includes `api/prefix.go` and `api/prefix_test.go`, and a change to
+`api/server.go` in order to invoke the middleware.
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)
