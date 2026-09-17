@@ -188,6 +188,13 @@ input to avoid errors while users type. Query echoes and stats cache keys retain
 the normalized original search string. Added unit and Mongo integration
 coverage and updated README and Swagger docs.
 
+**Phase 25 (done):** Added a `validate-pr.yml` GitHub Actions workflow that
+runs the existing reusable `validate.yml` checks on every pull request push
+and reports the outcome via a shared `report-workflow` composite action,
+which writes a job summary and posts/updates a PR comment. No deployment is
+triggered by this workflow (deployment remains `deploy-ec2.yml`, triggered
+separately by pushes to `main`).
+
 ## Stack
 
 - Go 1.27+, standard `net/http` (no router/framework libraries)

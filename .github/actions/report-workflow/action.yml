@@ -1,0 +1,127 @@
+name: Report Workflow
+description: Write a workflow summary and optionally update a pull request comment
+inputs:
+  title:
+    description: Report title
+    required: true
+  status:
+    description: Workflow status to report
+    required: true
+  commit:
+    description: Commit SHA to report
+    required: true
+  checks:
+    description: Markdown rows describing individual check results
+    required: false
+    default: ""
+  deployment-links:
+    description: Markdown links to include in the pull request report
+    required: false
+    default: ""
+  comment-on-pr:
+    description: Comment on the current or associated pull request
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Add workflow summary
+      shell: bash
+      env:
+        REPORT_TITLE: ${{ inputs.title }}
+        REPORT_STATUS: ${{ inputs.status }}
+        REPORT_COMMIT: ${{ inputs.commit }}
+        REPORT_CHECKS: ${{ inputs.checks }}
+        DEPLOYMENT_LINKS: ${{ inputs.deployment-links }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        echo "## $REPORT_TITLE" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Workflow | \`$REPORT_STATUS\` |" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Commit | \`$REPORT_COMMIT\` |" >> "$GITHUB_STEP_SUMMARY"
+        if [[ -n "$DEPLOYMENT_LINKS" ]]; then
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Endpoint | URL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$DEPLOYMENT_LINKS" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "[View workflow run]($RUN_URL)" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Comment on pull request
+      if: inputs.comment-on-pr == 'true' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+      uses: actions/github-script@v8
+      env:
+        REPORT_TITLE: ${{ inputs.title }}
+        REPORT_STATUS: ${{ inputs.status }}
+        REPORT_COMMIT: ${{ inputs.commit }}
+        REPORT_CHECKS: ${{ inputs.checks }}
+        DEPLOYMENT_LINKS: ${{ inputs.deployment-links }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      with:
+        script: |
+          let issueNumber = context.issue.number;
+          if (context.eventName === 'push') {
+            const { data: associatedPullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: process.env.REPORT_COMMIT,
+            });
+            const pullRequest = associatedPullRequests.find((candidate) => candidate.merged_at) ?? associatedPullRequests[0];
+            if (!pullRequest) {
+              core.info('No pull request is associated with this deployment commit.');
+              return;
+            }
+            issueNumber = pullRequest.number;
+          }
+
+          const status = process.env.REPORT_STATUS;
+          const emoji = status === 'success' ? ':white_check_mark:' : ':x:';
+          const checks = process.env.REPORT_CHECKS;
+          const deploymentLinks = process.env.DEPLOYMENT_LINKS;
+          const jobs = await github.paginate(
+            github.rest.actions.listJobsForWorkflowRun,
+            {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            },
+          );
+          const testJob = jobs.find((job) =>
+            job.name === 'Run Tests' || job.name.endsWith(' / Run Tests')
+          );
+          const testSummaryUrl = testJob
+            ? `${process.env.RUN_URL}#summary-${testJob.id}`
+            : process.env.RUN_URL;
+          const checksTable = checks ? `
+
+          | Check | Result |
+          | --- | --- |
+          ${checks}` : '';
+          const body = `<!-- workflow-report -->
+          ## ${emoji} ${process.env.REPORT_TITLE} Summary: \`${status}\`
+
+          ${checksTable}
+
+          Test Summary:
+          [Vitest Test Report](${testSummaryUrl})
+
+          Commit: \`${process.env.REPORT_COMMIT}\`
+          [View workflow run](${process.env.RUN_URL})
+          ${deploymentLinks ? `
+
+          Deployment:
+          | Endpoint | URL |
+          | --- | --- |
+          ${deploymentLinks}` : ''}`;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issueNumber,
+            body,
+          });
