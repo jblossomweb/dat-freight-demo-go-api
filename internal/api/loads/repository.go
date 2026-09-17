@@ -41,6 +41,8 @@ func (r *Repository) Find(ctx context.Context, filter bson.M, sortBy *SortModelE
 			direction = -1
 		}
 		findOpts.SetSort(bson.D{{Key: sortBy.ColID, Value: direction}})
+	} else {
+		findOpts.SetSort(bson.D{{Key: "id", Value: 1}}) // Default sort by ID ascending
 	}
 
 	cursor, err := r.collection.Find(ctx, filter, findOpts)
