@@ -1,0 +1,35 @@
+name: Validate Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    name: Validate
+    uses: ./.github/workflows/validate.yml
+
+  report:
+    name: Report
+    needs: validate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Report Validation
+        uses: ./.github/actions/report-workflow
+        with:
+          title: Pull Request Validation
+          status: ${{ needs.validate.result == 'success' && 'success' || 'failure' }}
+          commit: ${{ github.event.pull_request.head.sha }}
+          checks: |
+            | Validation | `${{ needs.validate.result }}` |
+          comment-on-pr: "true"
