@@ -76,6 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       api_url: ${{ steps.resolve-endpoint.outputs.api_url }}
+      health_json: ${{ steps.verify-health.outputs.health_json }}
 
     steps:
       - name: Configure AWS credentials
@@ -192,10 +193,39 @@ jobs:
           if [ -z "${HOST}" ] || [ "${HOST}" = "None" ]; then
             echo "::warning::Could not resolve a public hostname or IP for the EC2 instance; the deploy succeeded, but the report will omit the live API link."
             echo "api_url=" >> "${GITHUB_OUTPUT}"
-            exit 0
+            exit 1
           fi
 
-          echo "api_url=http://${HOST}/health" >> "${GITHUB_OUTPUT}"
+          echo "api_url=http://${HOST}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify Deployment Health
+        id: verify-health
+        if: steps.resolve-endpoint.outputs.api_url != ''
+        continue-on-error: true
+        env:
+          API_URL: ${{ steps.resolve-endpoint.outputs.api_url }}
+        run: |
+          HEALTH_URL="${API_URL}/health"
+          BODY=""
+          for attempt in $(seq 1 5); do
+            BODY=$(curl -fsS "${HEALTH_URL}") && break
+            echo "Attempt ${attempt} failed to reach ${HEALTH_URL}, retrying..."
+            sleep 3
+          done
+
+          if [ -z "${BODY}" ]; then
+            echo "::warning::Could not reach ${HEALTH_URL} after 5 attempts; the deploy succeeded, but health could not be verified."
+            echo "health_json=unreachable" >> "${GITHUB_OUTPUT}"
+            exit 1
+          fi
+
+          echo "health_json=${BODY}" >> "${GITHUB_OUTPUT}"
+
+          STATUS=$(echo "${BODY}" | jq -r '.status')
+          if [ "${STATUS}" != "ok" ]; then
+            echo "::warning::Deployed API health check reported status '${STATUS}': ${BODY}"
+            exit 1
+          fi
 
   report:
     name: Report
@@ -216,5 +246,9 @@ jobs:
             | Validate | `${{ needs.validate.result }}` |
             | Build and Push | `${{ needs.build-and-push.result }}` |
             | Deploy | `${{ needs.deploy.result }}` |
-          deployment-links: ${{ (needs.deploy.result == 'success' && needs.deploy.outputs.api_url != '') && format('| API | {0} |', needs.deploy.outputs.api_url) || '' }}
+            | Health Check | `${{ needs.deploy.outputs.health_json || 'n/a' }}` |
+          deployment-links: |
+            ${{ (needs.deploy.result == 'success' && needs.deploy.outputs.api_url != '') && format('| API Base URL | {0} |', needs.deploy.outputs.api_url) || '' }}
+            ${{ (needs.deploy.result == 'success' && needs.deploy.outputs.api_url != '') && format('| Health Check | {0}/health |', needs.deploy.outputs.api_url) || '' }}
+            ${{ (needs.deploy.result == 'success' && needs.deploy.outputs.api_url != '') && format('| Documentation | {0}/docs |', needs.deploy.outputs.api_url) || '' }}
           comment-on-pr: "true"
