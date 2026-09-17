@@ -32,7 +32,16 @@ func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration,
 
 	mux.Handle("/docs/", httpSwagger.WrapHandler)
 
+	// Send the bare root to the docs UI, preserving the "/api" prefix in the redirect if the request arrived with one.
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		location := "/docs/index.html"
+		if hadAPIPrefix(r) {
+			location = "/api" + location
+		}
+		http.Redirect(w, r, location, http.StatusFound)
+	})
+
 	return &http.Server{
-		Handler: corsMiddleware(allowedOrigins, mux),
+		Handler: corsMiddleware(allowedOrigins, stripAPIPrefix(mux)),
 	}
 }
