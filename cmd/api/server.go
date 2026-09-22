@@ -21,15 +21,16 @@ func (p mongoPinger) Ping(ctx context.Context) error {
 	return p.client.Ping(ctx, nil)
 }
 
-func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration, allowedOrigins []string) *http.Server {
-	mux := http.NewServeMux()
-
-	health.RegisterRoutes(mux, mongoPinger{client: client})
-
-	loadsRepo := loads.NewRepository(client.Database(dbName).Collection("loads"))
-	loadsService := loads.NewService(loadsRepo, statsCacheTTL)
-	loads.RegisterRoutes(mux, loadsService)
-
+// registerDocsRoutes wires up the Swagger UI and its bare-path redirects.
+func registerDocsRoutes(mux *http.ServeMux) {
+	// Redirect the bare "/docs" to the subtree explicitly, since ServeMux's own implicit redirect for this case drops the "/api" prefix.
+	mux.HandleFunc("GET /docs", func(w http.ResponseWriter, r *http.Request) {
+		location := "/docs/"
+		if hadAPIPrefix(r) {
+			location = "/api" + location
+		}
+		http.Redirect(w, r, location, http.StatusFound)
+	})
 	mux.Handle("/docs/", httpSwagger.WrapHandler)
 
 	// Send the bare root to the docs UI, preserving the "/api" prefix in the redirect if the request arrived with one.
@@ -40,6 +41,18 @@ func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration,
 		}
 		http.Redirect(w, r, location, http.StatusFound)
 	})
+}
+
+func newServer(client *mongo.Client, dbName string, statsCacheTTL time.Duration, allowedOrigins []string) *http.Server {
+	mux := http.NewServeMux()
+
+	health.RegisterRoutes(mux, mongoPinger{client: client})
+
+	loadsRepo := loads.NewRepository(client.Database(dbName).Collection("loads"))
+	loadsService := loads.NewService(loadsRepo, statsCacheTTL)
+	loads.RegisterRoutes(mux, loadsService)
+
+	registerDocsRoutes(mux)
 
 	return &http.Server{
 		Handler: corsMiddleware(allowedOrigins, stripAPIPrefix(mux)),
